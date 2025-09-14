@@ -1,0 +1,15 @@
+# Supabase Configuration
+SUPABASE_URL=https://qnxtehhsqqquwhluuflp.supabase.co
+SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFueHRlaGhzcXFxdXdobHV1ZmxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY3OTczMzQsImV4cCI6MjA3MjM3MzMzNH0.O1DHZKG8ggDhBYPG6mxIA3aJ6LxEM_R2U7JHfbppMys
+
+# Database Connection (use your Supabase database URL)
+# You can find this in your Supabase project settings under Database
+# Replace [project-ref], [password], and [region] with your actual values
+SUPABASE_DB_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+
+# Server Configuration
+PORT=5000
+NODE_ENV=development
+
+# Session Secret (generate a random string)
+SESSION_SECRET=your_session_secret_here

@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(248, 24%, 98%);
+  --foreground: hsl(31, 25%, 15%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(31, 25%, 15%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(31, 25%, 15%);
+  --primary: hsl(213, 79%, 54%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(159, 78%, 36%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --muted: hsl(248, 24%, 95%);
+  --muted-foreground: hsl(31, 25%, 45%);
+  --accent: hsl(36, 95%, 50%);
+  --accent-foreground: hsl(31, 25%, 15%);
+  --destructive: hsl(356, 91%, 54%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(214, 20%, 86%);
+  --input: hsl(214, 20%, 90%);
+  --ring: hsl(213, 79%, 54%);
+  --chart-1: hsl(213, 79%, 54%);
+  --chart-2: hsl(159, 78%, 36%);
+  --chart-3: hsl(36, 95%, 50%);
+  --chart-4: hsl(147, 78%, 42%);
+  --chart-5: hsl(341, 75%, 51%);
+
+  /* Custom color variables */
+  --bg-light: hsl(248, 24%, 98%);
+  --bg-dark: hsl(223, 47%, 23%);
+  --text-light: hsl(31, 25%, 15%);
+  --text-dark: hsl(208, 50%, 94%);
+
+  --font-sans: Inter, system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+  --font-mono: Menlo, monospace;
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: hsl(223, 47%, 11%);
+  --foreground: hsl(208, 50%, 94%);
+  --card: hsl(223, 47%, 16%);
+  --card-foreground: hsl(208, 50%, 94%);
+  --popover: hsl(223, 47%, 11%);
+  --popover-foreground: hsl(208, 50%, 94%);
+  --primary: hsl(213, 79%, 54%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(159, 78%, 36%);
+  --secondary-foreground: hsl(0, 0%, 100%);
+  --muted: hsl(223, 47%, 15%);
+  --muted-foreground: hsl(208, 50%, 70%);
+  --accent: hsl(36, 95%, 50%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(356, 91%, 54%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(223, 47%, 20%);
+  --input: hsl(223, 47%, 18%);
+  --ring: hsl(213, 79%, 54%);
+  --chart-1: hsl(213, 79%, 54%);
+  --chart-2: hsl(159, 78%, 36%);
+  --chart-3: hsl(36, 95%, 50%);
+  --chart-4: hsl(147, 78%, 42%);
+  --chart-5: hsl(341, 75%, 51%);
+
+  /* Custom color variables for dark mode */
+  --bg-light: hsl(248, 24%, 98%);
+  --bg-dark: hsl(223, 47%, 11%);
+  --text-light: hsl(31, 25%, 15%);
+  --text-dark: hsl(208, 50%, 94%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* Custom utility classes */
+.bg-bg-light {
+  background-color: var(--bg-light);
+}
+
+.bg-bg-dark {
+  background-color: var(--bg-dark);
+}
+
+.text-text-light {
+  color: var(--text-light);
+}
+
+.text-text-dark {
+  color: var(--text-dark);
+}
+
+/* Custom styles for better mobile experience */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+
+/* Theming for native date picker calendar icon */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+  opacity: 0.85;
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.95;
+}
