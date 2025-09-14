@@ -84,7 +84,7 @@ export default function Reports() {
     switch (filter) {
       case "thisMonth":
         return vouchers.filter((voucher) =>
-          isWithinInterval(new Date(voucher.startDate), {
+          isWithinInterval(new Date(voucher.start_date), {
             start: startOfMonth(now),
             end: endOfMonth(now),
           })
@@ -92,21 +92,21 @@ export default function Reports() {
       case "lastMonth":
         const lastMonth = subMonths(now, 1);
         return vouchers.filter((voucher) =>
-          isWithinInterval(new Date(voucher.startDate), {
+          isWithinInterval(new Date(voucher.start_date), {
             start: startOfMonth(lastMonth),
             end: endOfMonth(lastMonth),
           })
         );
       case "thisQuarter":
         return vouchers.filter((voucher) =>
-          isWithinInterval(new Date(voucher.startDate), {
+          isWithinInterval(new Date(voucher.start_date), {
             start: startOfQuarter(now),
             end: endOfQuarter(now),
           })
         );
       case "thisYear":
         return vouchers.filter((voucher) =>
-          isWithinInterval(new Date(voucher.startDate), {
+          isWithinInterval(new Date(voucher.start_date), {
             start: startOfYear(now),
             end: endOfYear(now),
           })
@@ -114,7 +114,7 @@ export default function Reports() {
       case "lastYear":
         const lastYear = subYears(now, 1);
         return vouchers.filter((voucher) =>
-          isWithinInterval(new Date(voucher.startDate), {
+          isWithinInterval(new Date(voucher.start_date), {
             start: startOfYear(lastYear),
             end: endOfYear(lastYear),
           })
@@ -315,7 +315,7 @@ export default function Reports() {
                   {vouchers.map((voucher) => (
                     <SelectItem key={voucher.id} value={voucher.id}>
                       {voucher.name} -{" "}
-                      {format(new Date(voucher.startDate), "MMM yyyy")}
+                      {format(new Date(voucher.start_date), "MMM yyyy")}
                     </SelectItem>
                   ))}
                 </SelectContent>

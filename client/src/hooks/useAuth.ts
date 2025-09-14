@@ -21,10 +21,12 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  
+  // First get the Supabase auth user
   const {
-    data: user,
-    error,
-    isLoading,
+    data: authUser,
+    error: authError,
+    isLoading: authLoading,
   } = useQuery<any | undefined, Error>({
     queryKey: ["supabase-user"],
     queryFn: async () => {
@@ -33,6 +35,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return data.user;
     },
   });
+
+  // Then get the user profile from our backend
+  const {
+    data: userProfile,
+    error: profileError,
+    isLoading: profileLoading,
+  } = useQuery<any | undefined, Error>({
+    queryKey: ["user-profile", authUser?.id],
+    queryFn: async () => {
+      if (!authUser) return null;
+      
+      const token = await supabase.auth.getSession().then(({ data }) => data.session?.access_token);
+      if (!token) return null;
+
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      
+      if (!response.ok) return null;
+      return response.json();
+    },
+    enabled: !!authUser,
+  });
+
+  // Combine auth user with profile data
+  const user = authUser && userProfile ? {
+    ...authUser,
+    first_name: userProfile.firstName,
+    last_name: userProfile.lastName,
+    department: userProfile.department,
+  } : authUser;
+
+  const error = authError || profileError;
+  const isLoading = authLoading || profileLoading;
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {

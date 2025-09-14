@@ -27,6 +27,7 @@ import {
 import { VoucherCard } from "@/components/voucher-card";
 import { CreateVoucherModal } from "@/components/create-voucher-modal";
 import { AddExpenseModal } from "@/components/add-expense-modal";
+import { UserAvatar } from "@/components/UserAvatar";
 import { supabase } from "@/lib/supabaseClient";
 import type { VoucherWithExpenses, User as UserType } from "@shared/schema";
 
@@ -70,12 +71,25 @@ export default function Dashboard() {
     retry: false,
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
-        .from("vouchers")
-        .select("*, expenses(*)")
-        .eq("user_id", user.id);
-      if (error) throw new Error(error.message);
-      return data || [];
+      
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('No authentication token found');
+      }
+      
+      const response = await fetch('/api/vouchers', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch vouchers: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
   });
 
@@ -185,85 +199,81 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-bg-light dark:bg-bg-dark text-text-light dark:text-text-dark pb-20">
+    <div className="min-h-screen bg-bg-light dark:bg-bg-dark text-text-light dark:text-text-dark pb-20 sm:pb-24">
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <MapPinPlus className="text-white text-sm" size={20} />
+        <div className="px-3 sm:px-4 py-2 sm:py-3 flex items-center justify-between">
+          <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-primary rounded-lg flex items-center justify-center flex-shrink-0">
+              <MapPinPlus className="text-white" size={16} />
             </div>
-            <div>
-              <h1 className="font-bold text-lg">PDSN - Expense Manager</h1>
-              <p className="text-xs text-gray-600 dark:text-gray-400">
+            <div className="min-w-0 flex-1">
+              <h1 className="font-bold text-sm sm:text-lg truncate">PDSN - Expense Manager</h1>
+              <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
                 {(user as UserType)?.department} Dept
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+              className="p-2 sm:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 min-w-[40px] h-10"
             >
-              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => logoutMutation.mutate()}
-              className="p-2 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              className="p-2 sm:p-2 hover:bg-red-100 dark:hover:bg-red-900 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 min-w-[40px] h-10"
               disabled={logoutMutation.isPending}
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
             </Button>
-            <div className="w-8 h-8 bg-gradient-to-r from-primary to-secondary rounded-full flex items-center justify-center">
-              <span className="text-white text-sm font-semibold">
-                {(user as UserType)?.first_name?.[0] ||
-                  (user as UserType)?.email?.[0] ||
-                  "U"}
-              </span>
-            </div>
+            <UserAvatar 
+              user={user} 
+              size="md" 
+              className="sm:h-10 sm:w-10 sm:text-base"
+            />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="p-4">
+      <main className="p-3 sm:p-4">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <Card className="bg-white dark:bg-gray-800">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     Total Vouchers
                   </p>
-                  <p className="text-2xl font-bold text-primary">
-                    {stats.totalVouchers}
-                  </p>
+                  <p className="text-lg sm:text-2xl font-bold">{stats.totalVouchers}</p>
                 </div>
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <FileText className="text-primary" size={20} />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+                  <FileText className="text-blue-600 dark:text-blue-400" size={16} />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-white dark:bg-gray-800">
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     Total Amount
                   </p>
-                  <p className="text-2xl font-bold text-secondary">
+                  <p className="text-lg sm:text-2xl font-bold">
                     ₹{stats.totalAmount.toLocaleString()}
                   </p>
                 </div>
-                <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
-                  <IndianRupee className="text-secondary" size={20} />
+                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+                  <IndianRupee className="text-green-600 dark:text-green-400" size={16} />
                 </div>
               </div>
             </CardContent>
@@ -271,45 +281,46 @@ export default function Dashboard() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-1 sm:gap-2 md:gap-3 bg-gray-100 dark:bg-gray-700 rounded-xl p-1 mb-6">
+        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-xl p-1 mb-4 sm:mb-6">
           <Button
             variant={filter === "all" ? "default" : "ghost"}
-            className={`flex-1 py-2 px-4 rounded-lg transition-all ring-1 ring-inset ${
+            className={`flex-1 py-2 px-2 sm:px-4 rounded-lg transition-all text-xs sm:text-sm ${
               filter === "all"
-                ? "bg-blue-600 text-white dark:bg-blue-600 dark:text-white shadow-sm ring-blue-600"
-                : "text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 ring-transparent"
+                ? "bg-blue-600 text-white dark:bg-blue-600 dark:text-white shadow-sm"
+                : "text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
             }`}
             onClick={() => setFilter("all")}
           >
-            {" "}
-            All Vouchers{" "}
+            All ({stats.totalVouchers})
           </Button>
           <Button
             variant={filter === "draft" ? "default" : "ghost"}
-            className={`flex-1 py-2 px-4 rounded-lg transition-all ${
+            className={`flex-1 py-2 px-2 sm:px-4 rounded-lg transition-all text-xs sm:text-sm ${
               filter === "draft"
                 ? "bg-blue-600 text-white dark:bg-blue-600 dark:text-white shadow-sm"
                 : "text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
             }`}
             onClick={() => setFilter("draft")}
           >
-            Drafts ({stats.draftCount})
+            <span className="hidden sm:inline">Drafts</span>
+            <span className="sm:hidden">Draft</span> ({stats.draftCount})
           </Button>
           <Button
             variant={filter === "submitted" ? "default" : "ghost"}
-            className={`flex-1 py-2 px-4 rounded-lg transition-all ${
+            className={`flex-1 py-2 px-2 sm:px-4 rounded-lg transition-all text-xs sm:text-sm ${
               filter === "submitted"
                 ? "bg-blue-600 text-white dark:bg-blue-600 dark:text-white shadow-sm"
                 : "text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
             }`}
             onClick={() => setFilter("submitted")}
           >
-            Submitted ({stats.submittedCount})
+            <span className="hidden sm:inline">Submitted</span>
+            <span className="sm:hidden">Submit</span> ({stats.submittedCount})
           </Button>
         </div>
 
         {/* Vouchers List */}
-        <div className="space-y-4">
+        <div className="space-y-3 sm:space-y-4">
           {filteredVouchers.length === 0 ? (
             <Card className="bg-white dark:bg-gray-800">
               <CardContent className="p-8 text-center">
@@ -342,19 +353,19 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex justify-around">
+            {/* Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-2 px-4 safe-area-pb">
+        <div className="flex justify-around max-w-md mx-auto">
           <Button
             variant="ghost"
-            className="flex flex-col items-center space-y-1 text-primary hover:text-primary hover:bg-primary/10"
+            className="flex flex-col items-center space-y-1 text-primary hover:text-primary hover:bg-primary/10 min-h-[60px] px-3"
           >
             <Home size={20} />
             <span className="text-xs">Dashboard</span>
           </Button>
           <Button
             variant="ghost"
-            className="flex flex-col items-center space-y-1 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10"
+            className="flex flex-col items-center space-y-1 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 min-h-[60px] px-3"
             onClick={() => setShowCreateVoucher(true)}
           >
             <Plus size={20} />
@@ -362,7 +373,7 @@ export default function Dashboard() {
           </Button>
           <Button
             variant="ghost"
-            className="flex flex-col items-center space-y-1 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10"
+            className="flex flex-col items-center space-y-1 text-gray-600 dark:text-gray-400 hover:text-primary hover:bg-primary/10 min-h-[60px] px-3"
             onClick={() => setLocation("/reports")}
             data-testid="button-reports"
           >

@@ -1,21 +1,60 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./auth";
+import { supabaseStorage } from "./supabaseStorage";
+import { verifySupabaseToken } from "./supabaseAuth";
 import { insertVoucherSchema, insertExpenseSchema } from "@shared/schema";
 import { z } from "zod";
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  setupAuth(app);
+export async function registerSupabaseRoutes(app: Express): Promise<Server> {
+  // User profile endpoint
+  app.get('/api/user/profile', verifySupabaseToken, async (req: any, res) => {
+    try {
+      const user = req.user;
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        department: user.department,
+      });
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ message: "Failed to fetch user profile" });
+    }
+  });
 
-  // Auth routes are handled in auth.ts: /api/register, /api/login, /api/logout, /api/user
-
-  // Voucher routes
-  app.get('/api/vouchers', isAuthenticated, async (req: any, res) => {
+  // Update user profile
+  app.patch('/api/user/profile', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const vouchers = await storage.getVouchersByUserId(userId);
+      const { firstName, lastName, department } = req.body;
+
+      const updatedUser = await supabaseStorage.createOrUpdateUser({
+        id: userId,
+        email: req.user.email,
+        first_name: firstName,
+        last_name: lastName,
+        department: department || req.user.department,
+      });
+
+      res.json({
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firstName: updatedUser.first_name,
+        lastName: updatedUser.last_name,
+        department: updatedUser.department,
+      });
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
+  // Voucher routes
+  app.get('/api/vouchers', verifySupabaseToken, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const vouchers = await supabaseStorage.getVouchersByUserId(userId);
       res.json(vouchers);
     } catch (error) {
       console.error("Error fetching vouchers:", error);
@@ -23,11 +62,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/vouchers/:id', isAuthenticated, async (req: any, res) => {
+  app.get('/api/vouchers/:id', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const voucher = await storage.getVoucherById(id, userId);
+      const voucher = await supabaseStorage.getVoucherById(id, userId);
       
       if (!voucher) {
         return res.status(404).json({ message: "Voucher not found" });
@@ -40,10 +79,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/vouchers', isAuthenticated, async (req: any, res) => {
+  app.post('/api/vouchers', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const user = await storage.getUser(userId);
+      const user = await supabaseStorage.getUser(userId);
       
       if (!user || !user.department) {
         return res.status(400).json({ message: "User department not found. Please update your profile." });
@@ -51,13 +90,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const voucherData = insertVoucherSchema.parse({
         ...req.body,
-        startDate: new Date(req.body.startDate),
-        endDate: new Date(req.body.endDate),
+        start_date: new Date(req.body.startDate),
+        end_date: new Date(req.body.endDate),
       });
 
-      const voucher = await storage.createVoucher({
+      const voucher = await supabaseStorage.createVoucher({
         ...voucherData,
-        userId,
+        user_id: userId,
         department: user.department,
       });
 
@@ -74,18 +113,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/vouchers/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/vouchers/:id', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { id } = req.params;
       
       const voucherData = insertVoucherSchema.partial().parse({
         ...req.body,
-        startDate: req.body.startDate ? new Date(req.body.startDate) : undefined,
-        endDate: req.body.endDate ? new Date(req.body.endDate) : undefined,
+        start_date: req.body.startDate ? new Date(req.body.startDate) : undefined,
+        end_date: req.body.endDate ? new Date(req.body.endDate) : undefined,
       });
 
-      const voucher = await storage.updateVoucher(id, voucherData, userId);
+      const voucher = await supabaseStorage.updateVoucher(id, voucherData, userId);
       
       if (!voucher) {
         return res.status(404).json({ message: "Voucher not found" });
@@ -104,12 +143,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/vouchers/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/vouchers/:id', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { id } = req.params;
       
-      const success = await storage.deleteVoucher(id, userId);
+      const success = await supabaseStorage.deleteVoucher(id, userId);
       
       if (!success) {
         return res.status(404).json({ message: "Voucher not found" });
@@ -123,13 +162,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Expense routes
-  app.post('/api/vouchers/:voucherId/expenses', isAuthenticated, async (req: any, res) => {
+  app.post('/api/vouchers/:voucherId/expenses', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { voucherId } = req.params;
       
       // Verify voucher belongs to user
-      const voucher = await storage.getVoucherById(voucherId, userId);
+      const voucher = await supabaseStorage.getVoucherById(voucherId, userId);
       if (!voucher) {
         return res.status(404).json({ message: "Voucher not found" });
       }
@@ -143,16 +182,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const expenseData = insertExpenseSchema.parse({
         ...req.body,
-        voucherId,
+        voucher_id: voucherId,
         datetime: new Date(req.body.datetime),
       });
 
       console.log("Final expense data:", expenseData);
 
-      const expense = await storage.createExpense(expenseData);
+      const expense = await supabaseStorage.createExpense(expenseData);
       
       // Update voucher total
-      await storage.updateVoucherTotal(voucherId);
+      await supabaseStorage.updateVoucherTotal(voucherId);
       
       res.status(201).json(expense);
     } catch (error) {
@@ -168,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/expenses/:id', isAuthenticated, async (req: any, res) => {
+  app.patch('/api/expenses/:id', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { id } = req.params;
@@ -178,14 +217,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         datetime: req.body.datetime ? new Date(req.body.datetime) : undefined,
       });
 
-      const expense = await storage.updateExpense(id, expenseData, userId);
+      const expense = await supabaseStorage.updateExpense(id, expenseData, userId);
       
       if (!expense) {
         return res.status(404).json({ message: "Expense not found" });
       }
 
       // Update voucher total
-      await storage.updateVoucherTotal(expense.voucherId);
+      await supabaseStorage.updateVoucherTotal(expense.voucher_id);
       
       res.json(expense);
     } catch (error) {
@@ -200,27 +239,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/expenses/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/expenses/:id', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
       const { id } = req.params;
       
-      // Get expense first to know the voucher ID
-      const expenses = await storage.getExpensesByVoucherId(''); // We need a different approach
-      const expense = expenses.find(e => e.id === id);
-      
-      if (!expense) {
-        return res.status(404).json({ message: "Expense not found" });
-      }
-
-      const success = await storage.deleteExpense(id, userId);
+      const success = await supabaseStorage.deleteExpense(id, userId);
       
       if (!success) {
         return res.status(404).json({ message: "Expense not found" });
       }
-
-      // Update voucher total
-      await storage.updateVoucherTotal(expense.voucherId);
       
       res.json({ message: "Expense deleted successfully" });
     } catch (error) {

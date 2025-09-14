@@ -17,7 +17,7 @@ export interface IStorage {
   // User operations for email/password auth
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  createUser(user: InsertUser & { id: string }): Promise<User>;
 
   // Voucher operations
   getVouchersByUserId(userId: string): Promise<VoucherWithExpenses[]>;
@@ -25,7 +25,7 @@ export interface IStorage {
     id: string,
     userId: string
   ): Promise<VoucherWithExpenses | undefined>;
-  createVoucher(voucher: InsertVoucher & { userId: string }): Promise<Voucher>;
+  createVoucher(voucher: InsertVoucher & { user_id: string }): Promise<Voucher>;
   updateVoucher(
     id: string,
     voucher: Partial<InsertVoucher>,
@@ -59,8 +59,14 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async createUser(userData: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
+  async createUser(userData: InsertUser & { id: string }): Promise<User> {
+    const [user] = await db.insert(users).values({
+      id: userData.id,
+      email: userData.email,
+      first_name: userData.first_name,
+      last_name: userData.last_name,
+      department: userData.department,
+    }).returning();
     return user;
   }
 
@@ -88,7 +94,13 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return updatedUser;
     } else {
-      const [newUser] = await db.insert(users).values(userData).returning();
+      const [newUser] = await db.insert(users).values({
+        id: userData.id,
+        email: userData.email,
+        first_name: userData.first_name,
+        last_name: userData.last_name,
+        department: userData.department,
+      }).returning();
       return newUser;
     }
   }
@@ -98,16 +110,16 @@ export class DatabaseStorage implements IStorage {
     const vouchersWithExpenses = await db
       .select({
         id: vouchers.id,
-        userId: vouchers.user_id,
+        user_id: vouchers.user_id,
         name: vouchers.name,
         department: vouchers.department,
         description: vouchers.description,
-        startDate: vouchers.start_date,
-        endDate: vouchers.end_date,
+        start_date: vouchers.start_date,
+        end_date: vouchers.end_date,
         status: vouchers.status,
-        totalAmount: vouchers.total_amount,
-        createdAt: vouchers.created_at,
-        updatedAt: vouchers.updated_at,
+        total_amount: vouchers.total_amount,
+        created_at: vouchers.created_at,
+        updated_at: vouchers.updated_at,
         expenses: expenses,
       })
       .from(vouchers)
@@ -121,17 +133,25 @@ export class DatabaseStorage implements IStorage {
     for (const row of vouchersWithExpenses) {
       if (!voucherMap.has(row.id)) {
         voucherMap.set(row.id, {
+          // Database fields (snake_case)
           id: row.id,
-          userId: row.userId,
+          user_id: row.user_id,
           name: row.name,
           department: row.department,
           description: row.description,
-          startDate: row.startDate,
-          endDate: row.endDate,
+          start_date: row.start_date,
+          end_date: row.end_date,
           status: row.status,
-          totalAmount: row.totalAmount,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
+          total_amount: row.total_amount,
+          created_at: row.created_at,
+          updated_at: row.updated_at,
+          // UI aliases (camelCase)
+          userId: row.user_id,
+          startDate: row.start_date,
+          endDate: row.end_date,
+          totalAmount: row.total_amount,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
           expenses: [],
           expenseCount: 0,
         });
@@ -155,25 +175,33 @@ export class DatabaseStorage implements IStorage {
     const [voucher] = await db
       .select()
       .from(vouchers)
-      .where(and(eq(vouchers.id, id), eq(vouchers.userId, userId)));
+      .where(and(eq(vouchers.id, id), eq(vouchers.user_id, userId)));
 
     if (!voucher) return undefined;
 
     const voucherExpenses = await db
       .select()
       .from(expenses)
-      .where(eq(expenses.voucherId, id))
+      .where(eq(expenses.voucher_id, id))
       .orderBy(desc(expenses.datetime));
 
     return {
+      // Database fields (snake_case)
       ...voucher,
+      // UI aliases (camelCase)
+      userId: voucher.user_id,
+      startDate: voucher.start_date,
+      endDate: voucher.end_date,
+      totalAmount: voucher.total_amount,
+      createdAt: voucher.created_at,
+      updatedAt: voucher.updated_at,
       expenses: voucherExpenses,
       expenseCount: voucherExpenses.length,
     };
   }
 
   async createVoucher(
-    voucherData: InsertVoucher & { userId: string }
+    voucherData: InsertVoucher & { user_id: string }
   ): Promise<Voucher> {
     const [voucher] = await db.insert(vouchers).values(voucherData).returning();
     return voucher;
@@ -186,8 +214,8 @@ export class DatabaseStorage implements IStorage {
   ): Promise<Voucher | undefined> {
     const [voucher] = await db
       .update(vouchers)
-      .set({ ...voucherData, updatedAt: new Date() })
-      .where(and(eq(vouchers.id, id), eq(vouchers.userId, userId)))
+      .set({ ...voucherData, updated_at: new Date() })
+      .where(and(eq(vouchers.id, id), eq(vouchers.user_id, userId)))
       .returning();
     return voucher;
   }
@@ -195,17 +223,25 @@ export class DatabaseStorage implements IStorage {
   async deleteVoucher(id: string, userId: string): Promise<boolean> {
     const result = await db
       .delete(vouchers)
-      .where(and(eq(vouchers.id, id), eq(vouchers.userId, userId)))
+      .where(and(eq(vouchers.id, id), eq(vouchers.user_id, userId)))
       .returning({ id: vouchers.id });
     return (result.length ?? 0) > 0;
   }
 
   // Expense operations
+  async getExpenseById(id: string): Promise<Expense | undefined> {
+    const [expense] = await db
+      .select()
+      .from(expenses)
+      .where(eq(expenses.id, id));
+    return expense;
+  }
+
   async getExpensesByVoucherId(voucherId: string): Promise<Expense[]> {
     return await db
       .select()
       .from(expenses)
-      .where(eq(expenses.voucherId, voucherId))
+      .where(eq(expenses.voucher_id, voucherId))
       .orderBy(desc(expenses.datetime));
   }
 
@@ -213,7 +249,7 @@ export class DatabaseStorage implements IStorage {
     const [expense] = await db.insert(expenses).values(expenseData).returning();
 
     // Update voucher total
-    await this.updateVoucherTotal(expenseData.voucherId);
+    await this.updateVoucherTotal(expenseData.voucher_id);
 
     return expense;
   }
@@ -225,10 +261,10 @@ export class DatabaseStorage implements IStorage {
   ): Promise<Expense | undefined> {
     // First verify the expense belongs to the user's voucher
     const [expense] = await db
-      .select({ id: expenses.id, voucherId: expenses.voucherId })
+      .select({ id: expenses.id, voucher_id: expenses.voucher_id })
       .from(expenses)
-      .innerJoin(vouchers, eq(expenses.voucherId, vouchers.id))
-      .where(and(eq(expenses.id, id), eq(vouchers.userId, userId)));
+      .innerJoin(vouchers, eq(expenses.voucher_id, vouchers.id))
+      .where(and(eq(expenses.id, id), eq(vouchers.user_id, userId)));
 
     if (!expense) return undefined;
 
@@ -239,7 +275,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
 
     // Update voucher total
-    await this.updateVoucherTotal(expense.voucherId);
+    await this.updateVoucherTotal(expense.voucher_id);
 
     return updatedExpense;
   }
@@ -247,10 +283,10 @@ export class DatabaseStorage implements IStorage {
   async deleteExpense(id: string, userId: string): Promise<boolean> {
     // First get the voucher ID and verify ownership
     const [expense] = await db
-      .select({ id: expenses.id, voucherId: expenses.voucherId })
+      .select({ id: expenses.id, voucher_id: expenses.voucher_id })
       .from(expenses)
-      .innerJoin(vouchers, eq(expenses.voucherId, vouchers.id))
-      .where(and(eq(expenses.id, id), eq(vouchers.userId, userId)));
+      .innerJoin(vouchers, eq(expenses.voucher_id, vouchers.id))
+      .where(and(eq(expenses.id, id), eq(vouchers.user_id, userId)));
 
     if (!expense) return false;
 
@@ -261,7 +297,7 @@ export class DatabaseStorage implements IStorage {
 
     if ((result.length ?? 0) > 0) {
       // Update voucher total
-      await this.updateVoucherTotal(expense.voucherId);
+      await this.updateVoucherTotal(expense.voucher_id);
       return true;
     }
 
@@ -273,13 +309,13 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db
       .select({ total: sum(expenses.amount) })
       .from(expenses)
-      .where(eq(expenses.voucherId, voucherId));
+      .where(eq(expenses.voucher_id, voucherId));
 
     const total = result?.total || "0";
 
     await db
       .update(vouchers)
-      .set({ totalAmount: total, updatedAt: new Date() })
+      .set({ total_amount: total, updated_at: new Date() })
       .where(eq(vouchers.id, voucherId));
   }
 }
