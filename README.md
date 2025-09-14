@@ -117,7 +117,7 @@ The application will be available at `http://localhost:5000`
 3. **Build Settings**:
    - Framework Preset: Vite
    - Build Command: `npm run build`
-   - Output Directory: `client/dist`
+   - Output Directory: `dist/public`
    - Install Command: `npm install`
 
 4. **Deploy**:

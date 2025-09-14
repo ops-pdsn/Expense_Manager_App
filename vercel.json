@@ -13,7 +13,8 @@
     },
     {
       "src": "/(.*)",
-      "dest": "client/dist/index.html"
+      "dest": "dist/public/$1"
     }
-  ]
+  ],
+  "outputDirectory": "dist/public"
 }
