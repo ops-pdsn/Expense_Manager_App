@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
-import { verifyToken } from "./auth.js";
+import { verifySupabaseToken } from "./auth.js";
 import { insertVoucherSchema, insertExpenseSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -29,7 +29,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { firstName, lastName, department } = req.body;
 
-      const updatedUser = await supabaseStorage.createOrUpdateUser({
+  const updatedUser = await storage.createOrUpdateUser({
         id: userId,
         email: req.user.email,
         first_name: firstName,
@@ -54,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/vouchers', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const vouchers = await supabaseStorage.getVouchersByUserId(userId);
+  const vouchers = await storage.getVouchersByUserId(userId);
       res.json(vouchers);
     } catch (error) {
       console.error("Error fetching vouchers:", error);
@@ -66,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const voucher = await supabaseStorage.getVoucherById(id, userId);
+  const voucher = await storage.getVoucherById(id, userId);
       
       if (!voucher) {
         return res.status(404).json({ message: "Voucher not found" });
@@ -82,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/vouchers', verifySupabaseToken, async (req: any, res) => {
     try {
       const userId = req.user.id;
-      const user = await supabaseStorage.getUser(userId);
+  const user = await storage.getUser(userId);
       
       if (!user || !user.department) {
         return res.status(400).json({ message: "User department not found. Please update your profile." });
@@ -94,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         end_date: new Date(req.body.endDate),
       });
 
-      const voucher = await supabaseStorage.createVoucher({
+  const voucher = await storage.createVoucher({
         ...voucherData,
         user_id: userId,
         department: user.department,
@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         end_date: req.body.endDate ? new Date(req.body.endDate) : undefined,
       });
 
-      const voucher = await supabaseStorage.updateVoucher(id, voucherData, userId);
+  const voucher = await storage.updateVoucher(id, voucherData, userId);
       
       if (!voucher) {
         return res.status(404).json({ message: "Voucher not found" });
@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { id } = req.params;
       
-      const success = await supabaseStorage.deleteVoucher(id, userId);
+  const success = await storage.deleteVoucher(id, userId);
       
       if (!success) {
         return res.status(404).json({ message: "Voucher not found" });
@@ -168,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { voucherId } = req.params;
       
       // Verify voucher belongs to user
-      const voucher = await supabaseStorage.getVoucherById(voucherId, userId);
+  const voucher = await storage.getVoucherById(voucherId, userId);
       if (!voucher) {
         return res.status(404).json({ message: "Voucher not found" });
       }
@@ -188,10 +188,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log("Final expense data:", expenseData);
 
-      const expense = await supabaseStorage.createExpense(expenseData);
+  const expense = await storage.createExpense(expenseData);
       
       // Update voucher total
-      await supabaseStorage.updateVoucherTotal(voucherId);
+  await storage.updateVoucherTotal(voucherId);
       
       res.status(201).json(expense);
     } catch (error) {
@@ -217,14 +217,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         datetime: req.body.datetime ? new Date(req.body.datetime) : undefined,
       });
 
-      const expense = await supabaseStorage.updateExpense(id, expenseData, userId);
+  const expense = await storage.updateExpense(id, expenseData, userId);
       
       if (!expense) {
         return res.status(404).json({ message: "Expense not found" });
       }
 
       // Update voucher total
-      await supabaseStorage.updateVoucherTotal(expense.voucher_id);
+  await storage.updateVoucherTotal(expense.voucher_id);
       
       res.json(expense);
     } catch (error) {
@@ -244,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.id;
       const { id } = req.params;
       
-      const success = await supabaseStorage.deleteExpense(id, userId);
+  const success = await storage.deleteExpense(id, userId);
       
       if (!success) {
         return res.status(404).json({ message: "Expense not found" });
