@@ -5,7 +5,7 @@ import { verifySupabaseToken } from "./supabaseAuth";
 import { insertVoucherSchema, insertExpenseSchema } from "@shared/schema";
 import { z } from "zod";
 
-export async function registerSupabaseRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<Server> {
   // User profile endpoint
   app.get('/api/user/profile', verifySupabaseToken, async (req: any, res) => {
     try {
