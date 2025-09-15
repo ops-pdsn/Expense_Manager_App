@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { supabaseStorage } from "./supabaseStorage";
-import { verifySupabaseToken } from "./supabaseAuth";
+import { storage } from "./storage.js";
+import { verifyToken } from "./auth.js";
 import { insertVoucherSchema, insertExpenseSchema } from "@shared/schema";
 import { z } from "zod";
 

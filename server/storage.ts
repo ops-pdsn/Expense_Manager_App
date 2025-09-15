@@ -10,7 +10,7 @@ import {
   type InsertExpense,
   type VoucherWithExpenses,
 } from "@shared/schema";
-import { db } from "./db";
+import { db } from "./db.js";
 import { eq, desc, and, sum } from "drizzle-orm";
 
 export interface IStorage {
