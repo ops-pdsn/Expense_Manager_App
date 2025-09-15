@@ -52,15 +52,15 @@ export default function Dashboard() {
     if (!authLoading && !user) {
       toast({
         title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
+        description: "You are logged out. Please log in again...",
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        setLocation("/");
       }, 500);
       return;
     }
-  }, [user, authLoading, toast]);
+  }, [user, authLoading, toast, setLocation]);
 
   // Fetch vouchers (Supabase)
   const { data: vouchers = [], isLoading: vouchersLoading } = useQuery<

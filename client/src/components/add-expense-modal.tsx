@@ -182,7 +182,7 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
         setTimeout(() => dismiss(), 5000);
         
         setTimeout(() => {
-          window.location.href = "/api/login";
+          window.location.href = "/";
         }, 500);
         return;
       }
