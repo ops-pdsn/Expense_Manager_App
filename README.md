@@ -98,36 +98,56 @@ The application will be available at `http://localhost:5000`
 2. Supabase project with database set up
 3. Vercel account
 
-### Steps
+### Quick Deployment Steps
 
-1. **Connect to Vercel**:
+1. **Push to GitHub**:
+   ```bash
+   git add .
+   git commit -m "Prepare for Vercel deployment"
+   git push origin main
+   ```
+
+2. **Connect to Vercel**:
    - Go to [vercel.com](https://vercel.com)
+   - Click "Import Project"
    - Import your GitHub repository
    - Select the `PDSN_Expense_Manager_App` repository
 
-2. **Configure Environment Variables**:
-   Add these environment variables in Vercel dashboard:
+3. **Configure Environment Variables**:
+   In Vercel dashboard, add these environment variables:
    ```
-   SUPABASE_URL=your_supabase_project_url
+   SUPABASE_URL=https://your-project-ref.supabase.co
    SUPABASE_ANON_KEY=your_supabase_anon_key
    SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
    NODE_ENV=production
    ```
 
-3. **Build Settings**:
-   - Framework Preset: Vite
-   - Build Command: `npm run build`
-   - Output Directory: `dist/public`
-   - Install Command: `npm install`
+4. **Build Settings** (Auto-detected):
+   - Framework Preset: Vite ✅
+   - Build Command: `npm run build` ✅
+   - Output Directory: `dist/public` ✅
+   - Install Command: `npm install` ✅
 
-4. **Deploy**:
-   - Click "Deploy" and Vercel will build and deploy your application
+5. **Deploy**:
+   - Click "Deploy" 
+   - Vercel will automatically build and deploy your application
    - Your app will be available at `https://your-app-name.vercel.app`
 
-### Important Notes
-- The application uses both frontend (React) and backend (Node.js API) components
-- API routes are handled by `server/index.ts` and will be available at `/api/*`
-- Static files are served from `client/dist`
+### What's Configured for You
+- ✅ Optimized build process with Vite
+- ✅ API routes handled by serverless functions (`/api/*`)
+- ✅ Static assets served from build output
+- ✅ Environment variables for production
+- ✅ Automatic CORS handling for cross-origin requests
+- ✅ Clean project structure with unnecessary files removed
+
+### Project Ready for Deployment
+The project has been cleaned and optimized:
+- ❌ Removed development-only files and directories
+- ❌ Removed unused dependencies 
+- ✅ Updated build scripts for production
+- ✅ Configured proper routing for SPA + API
+- ✅ Build tested and working
 
 ## Recent Changes
 
