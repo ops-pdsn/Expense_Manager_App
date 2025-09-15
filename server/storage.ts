@@ -9,7 +9,7 @@ import {
   type Expense,
   type InsertExpense,
   type VoucherWithExpenses,
-} from "@shared/schema";
+} from "../shared/schema.js";
 import { db } from "./db.js";
 import { eq, desc, and, sum } from "drizzle-orm";
 
