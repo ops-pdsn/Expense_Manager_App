@@ -57,7 +57,7 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      // Remove default queryFn to prevent accidental API calls
       refetchInterval: false,
       refetchOnWindowFocus: true, // Enable refetch on focus for better UX
       staleTime: 5 * 60 * 1000, // 5 minutes instead of Infinity for better data freshness

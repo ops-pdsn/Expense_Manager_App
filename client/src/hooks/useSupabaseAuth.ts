@@ -8,9 +8,9 @@ import { LoginData, RegisterData } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "../lib/supabaseClient";
 
-// Get Supabase configuration from the client
-const supabaseUrl = 'https://ehaihgqtikquxxzraakx.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVoYWloZ3F0aWtxdXh4enJhYWt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczMTI3NTEsImV4cCI6MjA3Mjg4ODc1MX0.T0WaIMT0TqSISCi9K4ciblXvguHf2t1d84q7IeDepds';
+// Get Supabase configuration from environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 type User = {
   id: string;
