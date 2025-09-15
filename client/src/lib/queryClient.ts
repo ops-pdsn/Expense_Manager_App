@@ -59,7 +59,7 @@ export const queryClient = new QueryClient({
     queries: {
       // Remove default queryFn to prevent accidental API calls
       refetchInterval: false,
-      refetchOnWindowFocus: true, // Enable refetch on focus for better UX
+      refetchOnWindowFocus: false, // Disable refetch on focus to prevent unwanted API calls
       staleTime: 5 * 60 * 1000, // 5 minutes instead of Infinity for better data freshness
       retry: false,
     },
@@ -68,3 +68,6 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Clear any potentially problematic cached queries on startup
+queryClient.clear();

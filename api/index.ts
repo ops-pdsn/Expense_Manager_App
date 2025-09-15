@@ -58,6 +58,15 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   res.status(status).json({ message });
 });
 
+// Add stub endpoints for old auth system to prevent 404 errors
+app.get('/api/user', (req, res) => {
+  res.status(401).json({ message: 'Please use Supabase authentication' });
+});
+
+app.post('/api/login', (req, res) => {
+  res.status(401).json({ message: 'Please use Supabase authentication' });
+});
+
 // Initialize routes
 (async () => {
   await registerSupabaseRoutes(app);
