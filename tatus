@@ -1,0 +1,3 @@
+[33m5454b11[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31mops-pdsn/main[m[33m)[m Fix vercel.json runtime specification for proper serverless function deployment
+[33m2091d10[m[33m ([m[1;31morigin/main[m[33m)[m Fix: Remove getQueryFn completely to prevent 404 API calls
+[33m7f55982[m FINAL FIX: Add stub endpoints for old auth routes, remove conflicting hooks, clear query cache

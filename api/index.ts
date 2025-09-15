@@ -8,11 +8,14 @@ app.use(express.urlencoded({ extended: false }));
 
 // CORS middleware for Vercel
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
-  if (req.method === 'OPTIONS') {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+
+  if (req.method === "OPTIONS") {
     res.sendStatus(200);
   } else {
     next();
@@ -59,12 +62,12 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 });
 
 // Add stub endpoints for old auth system to prevent 404 errors
-app.get('/api/user', (req, res) => {
-  res.status(401).json({ message: 'Please use Supabase authentication' });
+app.get("/api/user", (_req, res) => {
+  res.status(401).json({ message: "Please use Supabase authentication" });
 });
 
-app.post('/api/login', (req, res) => {
-  res.status(401).json({ message: 'Please use Supabase authentication' });
+app.post("/api/login", (_req, res) => {
+  res.status(401).json({ message: "Please use Supabase authentication" });
 });
 
 // Initialize routes
@@ -72,5 +75,7 @@ app.post('/api/login', (req, res) => {
   await registerSupabaseRoutes(app);
 })();
 
-// Export the app for Vercel
-export default app;
+// ✅ Export handler for Vercel (instead of exporting `app` directly)
+export default (req: Request, res: Response) => {
+  return app(req, res);
+};

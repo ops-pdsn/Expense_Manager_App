@@ -27,4 +27,5 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  envDir: path.resolve(__dirname),
 });

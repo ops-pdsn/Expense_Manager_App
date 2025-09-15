@@ -69,10 +69,6 @@ export function CreateVoucherModal({ open, onOpenChange }: CreateVoucherModalPro
       try {
         if (!user) throw new Error("User not authenticated");
         
-        console.log('Starting voucher creation...'); // Debug
-        console.log('User:', user); // Debug
-        console.log('Form data:', data); // Debug
-        
         // Get the current session token
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -88,7 +84,6 @@ export function CreateVoucherModal({ open, onOpenChange }: CreateVoucherModalPro
           endDate: data.endDate,      // Send camelCase as server expects
           department: data.department,
         };
-        console.log('Request body:', requestBody);
         
         // Make the request
         const response = await fetch('/api/vouchers', {
@@ -100,7 +95,6 @@ export function CreateVoucherModal({ open, onOpenChange }: CreateVoucherModalPro
           body: JSON.stringify(requestBody),
         });
         
-        console.log('Response status:', response.status); // Debug
         
         // Handle non-OK responses
         if (!response.ok) {
@@ -111,7 +105,6 @@ export function CreateVoucherModal({ open, onOpenChange }: CreateVoucherModalPro
         
         // Parse and return response
         const result = await response.json();
-        console.log('Success response:', result);
         return result;
       } catch (error) {
         console.error('Mutation error:', error);
@@ -119,7 +112,6 @@ export function CreateVoucherModal({ open, onOpenChange }: CreateVoucherModalPro
       }
     },
     onSuccess: async (data) => {
-      console.log('Voucher created successfully:', data);
       
       // Invalidate to get fresh data from server
       await queryClient.invalidateQueries({ queryKey: ["vouchers"] });
@@ -150,9 +142,7 @@ export function CreateVoucherModal({ open, onOpenChange }: CreateVoucherModalPro
   });
 
   const onSubmit = async (data: FormData) => {
-    console.log('Form submission starting...'); // Debug
     try {
-      console.log('Form data:', data);
       // Add validation logging
       const validationIssues = [];
       if (!data.name) validationIssues.push('Missing name');
