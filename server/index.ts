@@ -38,6 +38,14 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Log environment variables on server start for debugging
+  console.log("--- Vercel Environment ---");
+  console.log("SUPABASE_URL:", process.env.SUPABASE_URL ? "Set" : "Not Set");
+  console.log("SUPABASE_ANON_KEY:", process.env.SUPABASE_ANON_KEY ? "Set" : "Not Set");
+  console.log("DATABASE_URL:", process.env.DATABASE_URL ? "Set" : "Not Set");
+  console.log("SESSION_SECRET:", process.env.SESSION_SECRET ? "Set" : "Not Set");
+  console.log("--------------------------");
+
   const server = await registerSupabaseRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
