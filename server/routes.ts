@@ -30,16 +30,41 @@ export function registerRoutes(app: express.Express) {
 
       const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
-      // Adjust table/columns if your DB differs
-      const { data, error } = await admin
+      // First, try to get existing user
+      let { data, error } = await admin
         .from('users')
         .select('first_name, last_name, department')
         .eq('id', authUser.id)
         .maybeSingle();
 
-      if (error) {
-        console.error('/api/user/profile query error', error);
-        return res.status(500).json({ error: 'Profile query failed' });
+      // If user doesn't exist, create them with default values
+      if (error || !data) {
+        console.log('User not found in users table, creating new user:', authUser.id);
+        
+        const { error: insertError } = await admin
+          .from('users')
+          .insert({
+            id: authUser.id,
+            email: authUser.email,
+            first_name: null,
+            last_name: null,
+            department: 'Operations', // Default department
+          });
+
+        if (insertError) {
+          console.error('/api/user/profile insert error', insertError);
+          return res.status(500).json({ error: 'Failed to create user profile' });
+        }
+
+        // Return the newly created user data
+        return res.json({
+          id: authUser.id,
+          email: authUser.email,
+          firstName: null,
+          lastName: null,
+          department: 'Operations',
+          source: 'db-created',
+        });
       }
 
       return res.json({
