@@ -126,8 +126,11 @@ export function CreateVoucherModal({
       }
     },
     onSuccess: async (data) => {
+      console.log("Voucher created successfully:", data);
+
       // Invalidate to get fresh data from server
       await queryClient.invalidateQueries({ queryKey: ["vouchers"] });
+      console.log("Invalidated vouchers query");
 
       // Show success message with auto-dismiss
       const { dismiss } = toast({

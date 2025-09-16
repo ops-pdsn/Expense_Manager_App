@@ -63,7 +63,7 @@ export default function Dashboard() {
   }, [user, authLoading, toast, setLocation]);
 
   // Fetch vouchers (Supabase)
-  const { data: vouchers = [], isLoading: vouchersLoading } = useQuery<
+  const { data: vouchers = [], isLoading: vouchersLoading, error: vouchersError } = useQuery<
     VoucherWithExpenses[]
   >({
     queryKey: ["vouchers"],
@@ -71,6 +71,8 @@ export default function Dashboard() {
     retry: false,
     queryFn: async () => {
       if (!user) return [];
+      
+      console.log('Fetching vouchers for user:', user.id);
       
       // Get the current session token
       const { data: { session } } = await supabase.auth.getSession();
@@ -89,7 +91,9 @@ export default function Dashboard() {
         throw new Error(`Failed to fetch vouchers: ${response.statusText}`);
       }
       
-      return response.json();
+      const data = await response.json();
+      console.log('Fetched vouchers:', data);
+      return data;
     },
   });
 
@@ -146,6 +150,12 @@ export default function Dashboard() {
     if (filter === "all") return true;
     return voucher.status === filter;
   });
+
+  // Debug logging
+  console.log('Dashboard - vouchers:', vouchers);
+  console.log('Dashboard - filteredVouchers:', filteredVouchers);
+  console.log('Dashboard - vouchersLoading:', vouchersLoading);
+  console.log('Dashboard - vouchersError:', vouchersError);
 
   // Calculate stats
   const stats = {

@@ -450,7 +450,21 @@ export function registerRoutes(app: express.Express) {
       }
 
       console.log("Voucher created successfully:", data);
-      return res.json(data);
+      
+      // Transform the data to match the expected format (same as GET endpoint)
+      const transformedVoucher = {
+        ...data,
+        userId: data.user_id,
+        startDate: data.start_date,
+        endDate: data.end_date,
+        totalAmount: data.total_amount,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        expenses: [],
+        expenseCount: 0,
+      };
+      
+      return res.json(transformedVoucher);
     } catch (e) {
       console.error("/api/vouchers POST handler error", e);
       console.error(
