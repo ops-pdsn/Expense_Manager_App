@@ -60,7 +60,7 @@ export function CreateVoucherModal({ open, onOpenChange }: CreateVoucherModalPro
       description: "",
       startDate: "",
       endDate: "",
-      department: user?.department || "",
+      department: user?.department || "Operations",
     },
   });
 

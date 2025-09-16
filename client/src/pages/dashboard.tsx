@@ -239,7 +239,7 @@ export default function Dashboard() {
             <div className="min-w-0 flex-1">
               <h1 className="font-bold text-sm sm:text-lg truncate">PDSN - Expense Manager</h1>
               <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                {user?.department || 'No Department'} Dept
+                {user?.department || 'Operations'} Dept
               </p>
             </div>
           </div>

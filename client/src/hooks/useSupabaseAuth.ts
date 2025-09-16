@@ -94,6 +94,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const profileData = await response.json();
+        // Ensure department is always set
+        if (!profileData.department) {
+          profileData.department = 'Operations';
+        }
         return profileData;
       } catch (error) {
         console.error('Error fetching user:', error);
