@@ -165,47 +165,47 @@ export default function Dashboard() {
     setShowAddExpense(true);
   };
 
-  // Show department selection if user doesn't have department
-  if (user && (!user.department || user.department === null)) {
-    return (
-      <div className="min-h-screen bg-bg-light dark:bg-bg-dark flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-primary rounded-2xl mx-auto mb-4 flex items-center justify-center">
-                <Plane className="text-white text-2xl" size={32} />
-              </div>
-              <h2 className="text-xl font-bold">Welcome to TravelExpense</h2>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Please select your department to continue
-              </p>
-            </div>
+  // TEMPORARY FIX: Skip department selection entirely
+  // if (user && (!user.department || user.department === null)) {
+  //   return (
+  //     <div className="min-h-screen bg-bg-light dark:bg-bg-dark flex items-center justify-center p-4">
+  //       <Card className="w-full max-w-md">
+  //         <CardContent className="p-6">
+  //           <div className="text-center mb-6">
+  //             <div className="w-16 h-16 bg-primary rounded-2xl mx-auto mb-4 flex items-center justify-center">
+  //               <Plane className="text-white text-2xl" size={32} />
+  //             </div>
+  //             <h2 className="text-xl font-bold">Welcome to TravelExpense</h2>
+  //             <p className="text-gray-600 dark:text-gray-400 mt-2">
+  //               Please select your department to continue
+  //             </p>
+  //           </div>
 
-            <div className="space-y-2">
-              {[
-                "Engineering",
-                "Sales",
-                "Marketing",
-                "HR",
-                "Finance",
-                "Operations",
-              ].map((dept) => (
-                <Button
-                  key={dept}
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => updateUserMutation.mutate(dept)}
-                  disabled={updateUserMutation.isPending}
-                >
-                  {dept}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  //           <div className="space-y-2">
+  //             {[
+  //               "Engineering",
+  //               "Sales",
+  //               "Marketing",
+  //               "HR",
+  //               "Finance",
+  //               "Operations",
+  //             ].map((dept) => (
+  //               <Button
+  //                 key={dept}
+  //                 variant="outline"
+  //                 className="w-full justify-start"
+  //                 onClick={() => updateUserMutation.mutate(dept)}
+  //                 disabled={updateUserMutation.isPending}
+  //               >
+  //                 {dept}
+  //               </Button>
+  //             ))}
+  //           </div>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   );
+  // }
 
   if (authLoading || vouchersLoading) {
     return (
