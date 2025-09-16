@@ -78,7 +78,7 @@ export function registerRoutes(app: express.Express) {
         email: authUser.email,
         firstName: data?.first_name ?? null,
         lastName: data?.last_name ?? null,
-        department: data?.department ?? null,
+        department: data?.department ?? 'Operations', // Ensure never null
         source: 'db',
       });
     } catch (e) {
@@ -122,7 +122,7 @@ export function registerRoutes(app: express.Express) {
         email: authUser.email,
         firstName: data?.first_name ?? null,
         lastName: data?.last_name ?? null,
-        department: data?.department ?? 'Operations',
+        department: data?.department || 'Operations',
         source: 'db-updated',
       });
     } catch (e) {

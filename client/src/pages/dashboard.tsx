@@ -93,15 +93,44 @@ export default function Dashboard() {
     },
   });
 
-  // Update user department mutation (Supabase)
+  // Update user department mutation (Database + Supabase)
   const updateUserMutation = useMutation({
     mutationFn: async (department: string) => {
       if (!user) throw new Error("No user");
-      const { error } = await supabase.auth.updateUser({ data: { department } });
-      if (error) throw new Error(error.message);
+      
+      // Get the current session token
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        throw new Error('No authentication token found');
+      }
+      
+      // Update the user profile in the database
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          department: department,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to update department: ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
+      // Invalidate both user profile and vouchers queries
+      queryClient.invalidateQueries({ queryKey: ["supabase-user"] });
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
+      toast({
+        title: "Success",
+        description: "Department updated successfully!",
+      });
     },
     onError: (error) => {
       toast({
@@ -137,7 +166,7 @@ export default function Dashboard() {
   };
 
   // Show department selection if user doesn't have department
-  if (user && !(user as UserType).department) {
+  if (user && (!user.department || user.department === null)) {
     return (
       <div className="min-h-screen bg-bg-light dark:bg-bg-dark flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -210,7 +239,7 @@ export default function Dashboard() {
             <div className="min-w-0 flex-1">
               <h1 className="font-bold text-sm sm:text-lg truncate">PDSN - Expense Manager</h1>
               <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                {(user as UserType)?.department} Dept
+                {user?.department || 'No Department'} Dept
               </p>
             </div>
           </div>

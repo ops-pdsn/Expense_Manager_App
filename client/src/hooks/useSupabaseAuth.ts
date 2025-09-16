@@ -17,7 +17,7 @@ type User = {
   email: string;
   firstName?: string;
   lastName?: string;
-  department: string;
+  department: string | null;
 };
 
 type AuthContextType = {
