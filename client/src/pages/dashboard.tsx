@@ -63,36 +63,41 @@ export default function Dashboard() {
   }, [user, authLoading, toast, setLocation]);
 
   // Fetch vouchers (Supabase)
-  const { data: vouchers = [], isLoading: vouchersLoading, error: vouchersError } = useQuery<
-    VoucherWithExpenses[]
-  >({
+  const {
+    data: vouchers = [],
+    isLoading: vouchersLoading,
+    error: vouchersError,
+    refetch: refetchVouchers,
+  } = useQuery<VoucherWithExpenses[]>({
     queryKey: ["vouchers"],
     enabled: !!user,
     retry: false,
     queryFn: async () => {
       if (!user) return [];
-      
-      console.log('Fetching vouchers for user:', user.id);
-      
+
+      console.log("Fetching vouchers for user:", user.id);
+
       // Get the current session token
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session?.access_token) {
-        throw new Error('No authentication token found');
+        throw new Error("No authentication token found");
       }
-      
-      const response = await fetch('/api/vouchers', {
+
+      const response = await fetch("/api/vouchers", {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch vouchers: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      console.log('Fetched vouchers:', data);
+      console.log("Fetched vouchers:", data);
       return data;
     },
   });
@@ -101,30 +106,32 @@ export default function Dashboard() {
   const updateUserMutation = useMutation({
     mutationFn: async (department: string) => {
       if (!user) throw new Error("No user");
-      
+
       // Get the current session token
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session?.access_token) {
-        throw new Error('No authentication token found');
+        throw new Error("No authentication token found");
       }
-      
+
       // Update the user profile in the database
-      const response = await fetch('/api/user/profile', {
-        method: 'PATCH',
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           department: department,
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to update department: ${response.statusText}`);
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -152,10 +159,16 @@ export default function Dashboard() {
   });
 
   // Debug logging
-  console.log('Dashboard - vouchers:', vouchers);
-  console.log('Dashboard - filteredVouchers:', filteredVouchers);
-  console.log('Dashboard - vouchersLoading:', vouchersLoading);
-  console.log('Dashboard - vouchersError:', vouchersError);
+  console.log("Dashboard - vouchers:", vouchers);
+  console.log("Dashboard - filteredVouchers:", filteredVouchers);
+  console.log("Dashboard - vouchersLoading:", vouchersLoading);
+  console.log("Dashboard - vouchersError:", vouchersError);
+
+  // Debug function to manually refetch vouchers
+  const handleDebugRefetch = async () => {
+    console.log("Manual refetch triggered");
+    await refetchVouchers();
+  };
 
   // Calculate stats
   const stats = {
@@ -247,9 +260,11 @@ export default function Dashboard() {
               <MapPinPlus className="text-white" size={16} />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="font-bold text-sm sm:text-lg truncate">PDSN - Expense Manager</h1>
+              <h1 className="font-bold text-sm sm:text-lg truncate">
+                PDSN - Expense Manager
+              </h1>
               <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                {user?.department || 'Operations'} Dept
+                {user?.department || "Operations"} Dept
               </p>
             </div>
           </div>
@@ -271,9 +286,9 @@ export default function Dashboard() {
             >
               <LogOut size={16} />
             </Button>
-            <UserAvatar 
-              user={user} 
-              size="md" 
+            <UserAvatar
+              user={user}
+              size="md"
               className="sm:h-10 sm:w-10 sm:text-base"
             />
           </div>
@@ -291,10 +306,15 @@ export default function Dashboard() {
                   <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                     Total Vouchers
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold">{stats.totalVouchers}</p>
+                  <p className="text-lg sm:text-2xl font-bold">
+                    {stats.totalVouchers}
+                  </p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-                  <FileText className="text-blue-600 dark:text-blue-400" size={16} />
+                  <FileText
+                    className="text-blue-600 dark:text-blue-400"
+                    size={16}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -312,7 +332,10 @@ export default function Dashboard() {
                   </p>
                 </div>
                 <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-                  <IndianRupee className="text-green-600 dark:text-green-400" size={16} />
+                  <IndianRupee
+                    className="text-green-600 dark:text-green-400"
+                    size={16}
+                  />
                 </div>
               </div>
             </CardContent>
@@ -358,6 +381,18 @@ export default function Dashboard() {
           </Button>
         </div>
 
+        {/* Debug Button - Remove this after fixing */}
+        <div className="mb-4">
+          <Button
+            onClick={handleDebugRefetch}
+            variant="outline"
+            size="sm"
+            className="text-xs"
+          >
+            🔄 Debug: Refresh Vouchers
+          </Button>
+        </div>
+
         {/* Vouchers List */}
         <div className="space-y-3 sm:space-y-4">
           {filteredVouchers.length === 0 ? (
@@ -392,7 +427,7 @@ export default function Dashboard() {
         </div>
       </main>
 
-            {/* Bottom Navigation */}
+      {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-2 px-4 safe-area-pb">
         <div className="flex justify-around max-w-md mx-auto">
           <Button

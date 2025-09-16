@@ -128,9 +128,24 @@ export function CreateVoucherModal({
     onSuccess: async (data) => {
       console.log("Voucher created successfully:", data);
 
+      // Get current vouchers from cache before invalidation
+      const currentVouchers = queryClient.getQueryData(["vouchers"]);
+      console.log(
+        "Current vouchers in cache before invalidation:",
+        currentVouchers
+      );
+
       // Invalidate to get fresh data from server
       await queryClient.invalidateQueries({ queryKey: ["vouchers"] });
       console.log("Invalidated vouchers query");
+
+      // Also try to refetch the vouchers query
+      await queryClient.refetchQueries({ queryKey: ["vouchers"] });
+      console.log("Refetched vouchers query");
+
+      // Get vouchers from cache after invalidation
+      const updatedVouchers = queryClient.getQueryData(["vouchers"]);
+      console.log("Vouchers in cache after invalidation:", updatedVouchers);
 
       // Show success message with auto-dismiss
       const { dismiss } = toast({

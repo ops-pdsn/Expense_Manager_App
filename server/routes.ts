@@ -296,6 +296,7 @@ export function registerRoutes(app: express.Express) {
           expenseCount: voucher.expenses?.length || 0,
         })) || [];
 
+      console.log("Transformed vouchers being returned:", transformedVouchers);
       return res.json(transformedVouchers);
     } catch (e) {
       console.error("/api/vouchers handler error", e);
@@ -450,7 +451,7 @@ export function registerRoutes(app: express.Express) {
       }
 
       console.log("Voucher created successfully:", data);
-      
+
       // Transform the data to match the expected format (same as GET endpoint)
       const transformedVoucher = {
         ...data,
@@ -463,7 +464,8 @@ export function registerRoutes(app: express.Express) {
         expenses: [],
         expenseCount: 0,
       };
-      
+
+      console.log("Transformed voucher being returned:", transformedVoucher);
       return res.json(transformedVoucher);
     } catch (e) {
       console.error("/api/vouchers POST handler error", e);
