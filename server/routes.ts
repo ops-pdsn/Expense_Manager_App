@@ -1,262 +1,58 @@
-import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage.js";
-import { verifySupabaseToken } from "./auth.js";
-import { insertVoucherSchema, insertExpenseSchema } from "../shared/schema.js";
-import { z } from "zod";
+import type express from 'express';
+import { createClient } from '@supabase/supabase-js';
+import { verifySupabaseToken } from './auth.js';
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // User profile endpoint
-  app.get('/api/user/profile', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const user = req.user;
-      res.json({
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        department: user.department,
-      });
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-      res.status(500).json({ message: "Failed to fetch user profile" });
-    }
+// Do not use path aliases in serverless runtime
+const SUPABASE_URL = process.env.SUPABASE_URL || '';
+const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+export function registerRoutes(app: express.Express) {
+  app.get('/api/health', (_req, res) => {
+    res.json({ ok: true });
   });
 
-  // Update user profile
-  app.patch('/api/user/profile', verifySupabaseToken, async (req: any, res) => {
+  app.get('/api/user/profile', verifySupabaseToken, async (req, res) => {
     try {
-      const userId = req.user.id;
-      const { firstName, lastName, department } = req.body;
+      const authUser = req.user!; // set by middleware
 
-  const updatedUser = await storage.createOrUpdateUser({
-        id: userId,
-        email: req.user.email,
-        first_name: firstName,
-        last_name: lastName,
-        department: department || req.user.department,
-      });
-
-      res.json({
-        id: updatedUser.id,
-        email: updatedUser.email,
-        firstName: updatedUser.first_name,
-        lastName: updatedUser.last_name,
-        department: updatedUser.department,
-      });
-    } catch (error) {
-      console.error("Error updating user profile:", error);
-      res.status(500).json({ message: "Failed to update user profile" });
-    }
-  });
-
-  // Voucher routes
-  app.get('/api/vouchers', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-  const vouchers = await storage.getVouchersByUserId(userId);
-      res.json(vouchers);
-    } catch (error) {
-      console.error("Error fetching vouchers:", error);
-      res.status(500).json({ message: "Failed to fetch vouchers" });
-    }
-  });
-
-  app.get('/api/vouchers/:id', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { id } = req.params;
-  const voucher = await storage.getVoucherById(id, userId);
-      
-      if (!voucher) {
-        return res.status(404).json({ message: "Voucher not found" });
-      }
-      
-      res.json(voucher);
-    } catch (error) {
-      console.error("Error fetching voucher:", error);
-      res.status(500).json({ message: "Failed to fetch voucher" });
-    }
-  });
-
-  app.post('/api/vouchers', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-  const user = await storage.getUser(userId);
-      
-      if (!user || !user.department) {
-        return res.status(400).json({ message: "User department not found. Please update your profile." });
-      }
-
-      const voucherData = insertVoucherSchema.parse({
-        ...req.body,
-        start_date: new Date(req.body.startDate),
-        end_date: new Date(req.body.endDate),
-      });
-
-  const voucher = await storage.createVoucher({
-        ...voucherData,
-        user_id: userId,
-        department: user.department,
-      });
-
-      res.status(201).json(voucher);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
+      // If service role not provided, return auth-only payload so UI can render
+      if (!SUPABASE_URL || !SERVICE_ROLE) {
+        return res.json({
+          id: authUser.id,
+          email: authUser.email,
+          firstName: null,
+          lastName: null,
+          department: null,
+          source: 'auth-only',
+          note: 'SUPABASE_SERVICE_ROLE_KEY not set',
         });
       }
-      console.error("Error creating voucher:", error);
-      res.status(500).json({ message: "Failed to create voucher" });
-    }
-  });
 
-  app.patch('/api/vouchers/:id', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { id } = req.params;
-      
-      const voucherData = insertVoucherSchema.partial().parse({
-        ...req.body,
-        start_date: req.body.startDate ? new Date(req.body.startDate) : undefined,
-        end_date: req.body.endDate ? new Date(req.body.endDate) : undefined,
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+      // Adjust table/columns if your DB differs
+      const { data, error } = await admin
+        .from('users')
+        .select('first_name, last_name, department')
+        .eq('id', authUser.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('/api/user/profile query error', error);
+        return res.status(500).json({ error: 'Profile query failed' });
+      }
+
+      return res.json({
+        id: authUser.id,
+        email: authUser.email,
+        firstName: data?.first_name ?? null,
+        lastName: data?.last_name ?? null,
+        department: data?.department ?? null,
+        source: 'db',
       });
-
-  const voucher = await storage.updateVoucher(id, voucherData, userId);
-      
-      if (!voucher) {
-        return res.status(404).json({ message: "Voucher not found" });
-      }
-      
-      res.json(voucher);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error updating voucher:", error);
-      res.status(500).json({ message: "Failed to update voucher" });
+    } catch (e) {
+      console.error('/api/user/profile handler error', e);
+      res.status(500).json({ error: 'Profile handler error' });
     }
   });
-
-  app.delete('/api/vouchers/:id', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { id } = req.params;
-      
-  const success = await storage.deleteVoucher(id, userId);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Voucher not found" });
-      }
-      
-      res.json({ message: "Voucher deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting voucher:", error);
-      res.status(500).json({ message: "Failed to delete voucher" });
-    }
-  });
-
-  // Expense routes
-  app.post('/api/vouchers/:voucherId/expenses', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { voucherId } = req.params;
-      
-      // Verify voucher belongs to user
-  const voucher = await storage.getVoucherById(voucherId, userId);
-      if (!voucher) {
-        return res.status(404).json({ message: "Voucher not found" });
-      }
-
-      // Only allow adding expenses to draft vouchers
-      if (voucher.status !== 'draft') {
-        return res.status(400).json({ message: "Cannot add expenses to a submitted voucher" });
-      }
-
-      console.log("Expense request body:", req.body);
-      
-      const expenseData = insertExpenseSchema.parse({
-        ...req.body,
-        voucher_id: voucherId,
-        datetime: new Date(req.body.datetime),
-      });
-
-      console.log("Final expense data:", expenseData);
-
-  const expense = await storage.createExpense(expenseData);
-      
-      // Update voucher total
-  await storage.updateVoucherTotal(voucherId);
-      
-      res.status(201).json(expense);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        console.error("Validation error:", error.errors);
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error creating expense:", error);
-      res.status(500).json({ message: "Failed to create expense" });
-    }
-  });
-
-  app.patch('/api/expenses/:id', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { id } = req.params;
-      
-      const expenseData = insertExpenseSchema.partial().parse({
-        ...req.body,
-        datetime: req.body.datetime ? new Date(req.body.datetime) : undefined,
-      });
-
-  const expense = await storage.updateExpense(id, expenseData, userId);
-      
-      if (!expense) {
-        return res.status(404).json({ message: "Expense not found" });
-      }
-
-      // Update voucher total
-  await storage.updateVoucherTotal(expense.voucher_id);
-      
-      res.json(expense);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
-        });
-      }
-      console.error("Error updating expense:", error);
-      res.status(500).json({ message: "Failed to update expense" });
-    }
-  });
-
-  app.delete('/api/expenses/:id', verifySupabaseToken, async (req: any, res) => {
-    try {
-      const userId = req.user.id;
-      const { id } = req.params;
-      
-  const success = await storage.deleteExpense(id, userId);
-      
-      if (!success) {
-        return res.status(404).json({ message: "Expense not found" });
-      }
-      
-      res.json({ message: "Expense deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting expense:", error);
-      res.status(500).json({ message: "Failed to delete expense" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
 }
