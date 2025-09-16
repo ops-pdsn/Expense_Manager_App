@@ -320,39 +320,153 @@ export function registerRoutes(app: express.Express) {
     try {
       const authUser = req.user!; // set by middleware
       const { name, department, description, start_date, end_date } = req.body;
+      console.log("POST /api/vouchers - User:", authUser.id, "Data:", {
+        name,
+        department,
+        description,
+        start_date,
+        end_date,
+      });
+
+      // Validate required fields
+      if (!name || !department || !start_date || !end_date) {
+        console.error("Missing required fields:", {
+          name,
+          department,
+          start_date,
+          end_date,
+        });
+        return res.status(400).json({
+          error: "Missing required fields",
+          message: "Name, department, start_date, and end_date are required",
+          received: { name, department, start_date, end_date },
+        });
+      }
+
+      // Validate date format
+      const startDate = new Date(start_date);
+      const endDate = new Date(end_date);
+
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.error("Invalid date format:", { start_date, end_date });
+        return res.status(400).json({
+          error: "Invalid date format",
+          message: "start_date and end_date must be valid dates",
+          received: { start_date, end_date },
+        });
+      }
+
+      if (startDate >= endDate) {
+        console.error("Invalid date range:", { start_date, end_date });
+        return res.status(400).json({
+          error: "Invalid date range",
+          message: "start_date must be before end_date",
+          received: { start_date, end_date },
+        });
+      }
 
       if (!SUPABASE_URL || !SERVICE_ROLE) {
-        return res.status(500).json({ error: "Service not configured" });
+        console.log(
+          "Missing Supabase configuration - SUPABASE_URL:",
+          !!SUPABASE_URL,
+          "SERVICE_ROLE:",
+          !!SERVICE_ROLE
+        );
+        return res.status(503).json({
+          error: "Service temporarily unavailable",
+          message: "Database configuration missing",
+          details:
+            "Please check environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+        });
       }
 
       const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
         auth: { persistSession: false },
       });
+      console.log("Supabase admin client created");
+
+      // First check if vouchers table exists by trying a simple query
+      const { data: tableCheck, error: tableError } = await admin
+        .from("vouchers")
+        .select("id")
+        .limit(1);
+
+      if (tableError) {
+        console.error("Vouchers table check failed:", tableError);
+        if (
+          tableError.code === "PGRST116" ||
+          tableError.message?.includes('relation "vouchers" does not exist')
+        ) {
+          console.log("Vouchers table does not exist, cannot create voucher");
+          return res.status(503).json({
+            error: "Database table not found",
+            message: "Vouchers table does not exist",
+            details:
+              "Please run the database setup script to create the required tables",
+            code: tableError.code,
+          });
+        }
+        return res.status(500).json({
+          error: "Database table check failed",
+          details: tableError.message,
+          code: tableError.code,
+        });
+      }
+
+      console.log("Vouchers table exists, proceeding with insert");
+
+      const insertData = {
+        user_id: authUser.id,
+        name,
+        department,
+        description: description || null,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        status: "draft",
+        total_amount: "0",
+      };
+
+      console.log("Inserting voucher with data:", insertData);
 
       const { data, error } = await admin
         .from("vouchers")
-        .insert({
-          user_id: authUser.id,
-          name,
-          department,
-          description,
-          start_date,
-          end_date,
-          status: "draft",
-          total_amount: "0",
-        })
+        .insert(insertData)
         .select()
         .single();
 
       if (error) {
         console.error("/api/vouchers POST error", error);
-        return res.status(500).json({ error: "Failed to create voucher" });
+        console.error("Error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        return res.status(500).json({
+          error: "Failed to create voucher",
+          details: error.message,
+          code: error.code,
+        });
       }
 
+      console.log("Voucher created successfully:", data);
       return res.json(data);
     } catch (e) {
       console.error("/api/vouchers POST handler error", e);
-      res.status(500).json({ error: "Voucher creation error" });
+      console.error(
+        "Error stack:",
+        e instanceof Error ? e.stack : "No stack trace"
+      );
+      res.status(500).json({
+        error: "Voucher creation error",
+        message: e instanceof Error ? e.message : "Unknown error",
+        stack:
+          process.env.NODE_ENV === "development"
+            ? e instanceof Error
+              ? e.stack
+              : undefined
+            : undefined,
+      });
     }
   });
 
@@ -416,12 +530,24 @@ export function registerRoutes(app: express.Express) {
         } = req.body;
 
         if (!SUPABASE_URL || !SERVICE_ROLE) {
-          return res.status(500).json({ error: "Service not configured" });
+          console.log(
+            "Missing Supabase configuration - SUPABASE_URL:",
+            !!SUPABASE_URL,
+            "SERVICE_ROLE:",
+            !!SERVICE_ROLE
+          );
+          return res.status(503).json({
+            error: "Service temporarily unavailable",
+            message: "Database configuration missing",
+            details:
+              "Please check environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+          });
         }
 
         const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
           auth: { persistSession: false },
         });
+        console.log("Supabase admin client created for expenses");
 
         // First verify the voucher belongs to the user
         const { data: voucher, error: fetchError } = await admin
@@ -431,7 +557,28 @@ export function registerRoutes(app: express.Express) {
           .eq("user_id", authUser.id)
           .single();
 
-        if (fetchError || !voucher) {
+        if (fetchError) {
+          console.error("Error fetching voucher:", fetchError);
+          if (
+            fetchError.code === "PGRST116" ||
+            fetchError.message?.includes('relation "vouchers" does not exist')
+          ) {
+            return res.status(503).json({
+              error: "Database table not found",
+              message: "Vouchers table does not exist",
+              details:
+                "Please run the database setup script to create the required tables",
+              code: fetchError.code,
+            });
+          }
+          return res.status(500).json({
+            error: "Failed to fetch voucher",
+            details: fetchError.message,
+            code: fetchError.code,
+          });
+        }
+
+        if (!voucher) {
           return res.status(404).json({ error: "Voucher not found" });
         }
 
