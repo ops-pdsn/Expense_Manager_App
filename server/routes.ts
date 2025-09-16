@@ -40,6 +40,7 @@ export function registerRoutes(app: express.Express) {
       // If user doesn't exist, create them with default values
       if (error || !data) {
         console.log('User not found in users table, creating new user:', authUser.id);
+        console.log('Query error:', error);
         
         const { error: insertError } = await admin
           .from('users')
@@ -56,6 +57,8 @@ export function registerRoutes(app: express.Express) {
           return res.status(500).json({ error: 'Failed to create user profile' });
         }
 
+        console.log('User created successfully with department: Operations');
+
         // Return the newly created user data
         return res.json({
           id: authUser.id,
@@ -66,6 +69,9 @@ export function registerRoutes(app: express.Express) {
           source: 'db-created',
         });
       }
+
+      console.log('Existing user data:', data);
+      console.log('User department:', data?.department);
 
       return res.json({
         id: authUser.id,
@@ -78,6 +84,50 @@ export function registerRoutes(app: express.Express) {
     } catch (e) {
       console.error('/api/user/profile handler error', e);
       res.status(500).json({ error: 'Profile handler error' });
+    }
+  });
+
+  // Update user profile endpoint
+  app.patch('/api/user/profile', verifySupabaseToken, async (req, res) => {
+    try {
+      const authUser = req.user!; // set by middleware
+      const { firstName, lastName, department } = req.body;
+
+      if (!SUPABASE_URL || !SERVICE_ROLE) {
+        return res.status(500).json({ error: 'Service not configured' });
+      }
+
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
+
+      // Upsert user profile
+      const { data, error } = await admin
+        .from('users')
+        .upsert({
+          id: authUser.id,
+          email: authUser.email,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          department: department || 'Operations',
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('/api/user/profile PATCH error', error);
+        return res.status(500).json({ error: 'Failed to update user profile' });
+      }
+
+      return res.json({
+        id: authUser.id,
+        email: authUser.email,
+        firstName: data?.first_name ?? null,
+        lastName: data?.last_name ?? null,
+        department: data?.department ?? 'Operations',
+        source: 'db-updated',
+      });
+    } catch (e) {
+      console.error('/api/user/profile PATCH handler error', e);
+      res.status(500).json({ error: 'Profile update error' });
     }
   });
 
