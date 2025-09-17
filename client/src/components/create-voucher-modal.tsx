@@ -149,13 +149,11 @@ export function CreateVoucherModal({
       console.log("Vouchers in cache after invalidation:", updatedVouchers);
 
       // Show success message with auto-dismiss
-      const { dismiss } = toast({
+      toast({
         title: "Success",
         description: "Voucher created successfully. You can now add expenses.",
-        variant: "default",
+        variant: "success",
       });
-      // Auto-dismiss success messages after 3 seconds
-      setTimeout(() => dismiss(), 3000);
 
       // Reset and close
       form.reset();
@@ -163,13 +161,11 @@ export function CreateVoucherModal({
     },
     onError: (error: Error) => {
       console.error("Mutation error:", error);
-      const { dismiss } = toast({
+      toast({
         title: "Error",
         description: error.message || "Failed to create voucher",
         variant: "destructive",
       });
-      // Auto-dismiss error messages after 5 seconds
-      setTimeout(() => dismiss(), 5000);
     },
   });
 

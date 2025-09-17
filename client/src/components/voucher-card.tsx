@@ -84,20 +84,18 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
-      const { dismiss } = toast({
+      toast({
         title: "Success",
         description: "Voucher submitted successfully",
-        variant: "default",
+        variant: "success",
       });
-      setTimeout(() => dismiss(), 3000);
     },
     onError: (error) => {
-      const { dismiss } = toast({
+      toast({
         title: "Error",
         description: error.message || "Failed to submit voucher",
         variant: "destructive",
       });
-      setTimeout(() => dismiss(), 5000);
     },
   });
 
@@ -109,12 +107,11 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
-      const { dismiss } = toast({
+      toast({
         title: "Success",
         description: "Voucher deleted successfully",
-        variant: "default",
+        variant: "success",
       });
-      setTimeout(() => dismiss(), 3000);
     },
     onError: (error) => {
       console.error("Delete voucher error:", error);
@@ -126,12 +123,11 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
         errorMessage = error.message;
       }
       
-      const { dismiss } = toast({
+      toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
-      setTimeout(() => dismiss(), 5000);
     },
   });
 
@@ -143,12 +139,11 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
-      const { dismiss } = toast({
+      toast({
         title: "Success",
         description: "Expense deleted successfully",
-        variant: "default",
+        variant: "success",
       });
-      setTimeout(() => dismiss(), 3000);
     },
     onError: (error) => {
       console.error("Delete expense error:", error);
@@ -160,12 +155,11 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
         errorMessage = error.message;
       }
       
-      const { dismiss } = toast({
+      toast({
         title: "Error",
         description: errorMessage,
         variant: "destructive",
       });
-      setTimeout(() => dismiss(), 5000);
     },
   });
 
@@ -185,12 +179,11 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
   const printVoucher = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      const { dismiss } = toast({
+      toast({
         title: "Error",
         description: "Please allow popups to print voucher",
         variant: "destructive",
       });
-      setTimeout(() => dismiss(), 5000);
       return;
     }
 

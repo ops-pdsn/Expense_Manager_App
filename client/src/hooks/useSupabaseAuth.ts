@@ -144,6 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Login successful",
         description: `Welcome back!`,
+        variant: "success",
       });
       // Don't reload, let the auth state change handle it
     },
@@ -190,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Registration successful",
         description: `Welcome! Please check your email to confirm your account.`,
+        variant: "success",
       });
       // Don't reload, let the auth state change handle it
     },

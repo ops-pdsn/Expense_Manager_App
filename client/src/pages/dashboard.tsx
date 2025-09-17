@@ -144,6 +144,7 @@ export default function Dashboard() {
       toast({
         title: "Success",
         description: "Department updated successfully!",
+        variant: "success",
       });
     },
     onError: (error) => {

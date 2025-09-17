@@ -162,14 +162,11 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
       // Always invalidate to get the real data from server
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
       
-      const { dismiss } = toast({
+      toast({
         title: "Success",
         description: "Expense added successfully",
-        variant: "default",
+        variant: "success",
       });
-      
-      // Auto-dismiss success messages after 3 seconds
-      setTimeout(() => dismiss(), 3000);
       
       form.reset();
       onOpenChange(false);
@@ -181,13 +178,11 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
       }
       
       if (isUnauthorizedError(error)) {
-        const { dismiss } = toast({
+        toast({
           title: "Unauthorized",
           description: "You are logged out. Logging in again...",
           variant: "destructive",
         });
-        // Auto-dismiss after 5 seconds for error messages
-        setTimeout(() => dismiss(), 5000);
         
         setTimeout(() => {
           window.location.href = "/";
@@ -195,13 +190,11 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
         return;
       }
       
-      const { dismiss } = toast({
+      toast({
         title: "Error",
         description: "Failed to add expense",
         variant: "destructive",
       });
-      // Auto-dismiss error messages after 5 seconds
-      setTimeout(() => dismiss(), 5000);
     },
     // Always refetch after error or success to ensure consistency
     onSettled: () => {
