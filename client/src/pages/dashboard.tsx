@@ -161,17 +161,7 @@ export default function Dashboard() {
     return voucher.status === filter;
   });
 
-  // Debug logging
-  console.log("Dashboard - vouchers:", vouchers);
-  console.log("Dashboard - filteredVouchers:", filteredVouchers);
-  console.log("Dashboard - vouchersLoading:", vouchersLoading);
-  console.log("Dashboard - vouchersError:", vouchersError);
 
-  // Debug function to manually refetch vouchers
-  const handleDebugRefetch = async () => {
-    console.log("Manual refetch triggered");
-    await refetchVouchers();
-  };
 
   // Calculate stats
   const stats = {
@@ -384,17 +374,6 @@ export default function Dashboard() {
           </Button>
         </div>
 
-        {/* Debug Button - Remove this after fixing */}
-        <div className="mb-4">
-          <Button
-            onClick={handleDebugRefetch}
-            variant="outline"
-            size="sm"
-            className="text-xs"
-          >
-            🔄 Debug: Refresh Vouchers
-          </Button>
-        </div>
 
         {/* Vouchers List */}
         <div className="space-y-3 sm:space-y-4">
