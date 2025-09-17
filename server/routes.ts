@@ -535,6 +535,20 @@ export function registerRoutes(app: express.Express) {
         return res.status(404).json({ error: "Voucher not found" });
       }
 
+      // Delete all expenses associated with this voucher first
+      console.log(`Deleting all expenses for voucher ${id}`);
+      const { error: expensesDeleteError } = await admin
+        .from("expenses")
+        .delete()
+        .eq("voucher_id", id);
+
+      if (expensesDeleteError) {
+        console.error("/api/vouchers DELETE expenses error", expensesDeleteError);
+        return res.status(500).json({ error: "Failed to delete voucher expenses" });
+      }
+      console.log(`Successfully deleted expenses for voucher ${id}`);
+
+      // Then delete the voucher
       const { error } = await admin
         .from("vouchers")
         .delete()
