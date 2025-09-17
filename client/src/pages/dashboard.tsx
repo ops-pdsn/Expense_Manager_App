@@ -68,7 +68,7 @@ export default function Dashboard() {
     isLoading: vouchersLoading,
     error: vouchersError,
     refetch: refetchVouchers,
-  } = useQuery<VoucherWithExpenses[]>( {
+  } = useQuery<VoucherWithExpenses[]>({
     queryKey: ["vouchers"],
     enabled: !!user,
     retry: false,
@@ -96,11 +96,14 @@ export default function Dashboard() {
         throw new Error(`Failed to fetch vouchers: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      console.log("Fetched vouchers:", data);
-      return data;
+      const result = await response.json();
+      console.log("Fetched vouchers:", result);
+      
+      // ✅ Extract the data array from the response
+      return result.data || result; // Handle both {data: [...]} and [...] formats
     },
   });
+
 
   // Update user department mutation (Database + Supabase)
   const updateUserMutation = useMutation({

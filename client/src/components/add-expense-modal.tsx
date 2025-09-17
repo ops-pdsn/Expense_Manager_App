@@ -104,6 +104,7 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
     }
   }, [watchDistance, showFuelSection, form]);
 
+  // ...existing code...
   const createExpenseMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const response = await apiRequest("POST", `/api/vouchers/${voucherId}/expenses`, {
@@ -120,10 +121,13 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
       const previousVouchers = queryClient.getQueryData(["vouchers"]);
 
       // Optimistically update to the new value
-      queryClient.setQueryData(["vouchers"], (old: any[]) => {
+      queryClient.setQueryData(["vouchers"], (old: any) => {
         if (!old) return old;
         
-        return old.map((voucher: any) => {
+        // Handle both {data: [...]} and [...] formats
+        const vouchers = Array.isArray(old) ? old : old.data || [];
+        
+        const updatedVouchers = vouchers.map((voucher: any) => {
           if (voucher.id === voucherId) {
             const optimisticExpense = {
               id: `temp-${Date.now()}`, // Temporary ID
@@ -145,6 +149,9 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
           }
           return voucher;
         });
+
+        // Return in the same format as received
+        return Array.isArray(old) ? updatedVouchers : { ...old, data: updatedVouchers };
       });
 
       // Return a context object with the snapshotted value
@@ -200,6 +207,7 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
     },
   });
+// ...existing code...
 
   const onSubmit = (data: FormData) => {
     createExpenseMutation.mutate(data);

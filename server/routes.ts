@@ -11,6 +11,18 @@ export function registerRoutes(app: express.Express) {
     res.json({ ok: true });
   });
 
+
+// Add this temporary debug endpoint
+  app.get("/api/debug/env", (_req, res) => {
+    res.json({
+      SUPABASE_URL: !!process.env.SUPABASE_URL,
+      SUPABASE_URL_VALUE: process.env.SUPABASE_URL?.substring(0, 20) + "...",
+      SERVICE_ROLE: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      SERVICE_ROLE_LENGTH: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0,
+      NODE_ENV: process.env.NODE_ENV,
+    });
+  });
+
   // Environment configuration check
   app.get("/api/health/config", (_req, res) => {
     res.json({
@@ -196,126 +208,94 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
+  // ...existing code...
   // Vouchers endpoints
   app.get("/api/vouchers", verifySupabaseToken, async (req, res) => {
     try {
       const authUser = req.user!; // set by middleware
-      console.log(
-        "GET /api/vouchers - User:",
-        authUser.id,
-        "Email:",
-        authUser.email
-      );
+      console.log("GET /api/vouchers - User:", authUser.id, "Email:", authUser.email);
 
       if (!SUPABASE_URL || !SERVICE_ROLE) {
-        console.log(
-          "Missing Supabase configuration - SUPABASE_URL:",
-          !!SUPABASE_URL,
-          "SERVICE_ROLE:",
-          !!SERVICE_ROLE
-        );
         return res.status(503).json({
           error: "Service temporarily unavailable",
           message: "Database configuration missing",
-          details:
-            "Please check environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+          details: "Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
         });
       }
 
-      const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
-        auth: { persistSession: false },
-      });
-      console.log("Supabase admin client created");
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } });
 
-      // First check if vouchers table exists by trying a simple query
-      const { data: tableCheck, error: tableError } = await admin
+      // First, get vouchers without relationships to debug
+      const { data, error } = await admin
         .from("vouchers")
-        .select("id")
-        .limit(1);
-
-      if (tableError) {
-        console.error("Vouchers table check failed:", tableError);
-        if (
-          tableError.code === "PGRST116" ||
-          tableError.message?.includes('relation "vouchers" does not exist')
-        ) {
-          console.log("Vouchers table does not exist, returning empty array");
-          return res.json([]);
-        }
-        return res.status(500).json({
-          error: "Database table check failed",
-          details: tableError.message,
-          code: tableError.code,
-        });
-      }
-
-      // Fetch vouchers with expenses for the authenticated user
-      const { data: vouchers, error: vouchersError } = await admin
-        .from("vouchers")
-        .select(
-          `
-          *,
-          expenses (*)
-        `
-        )
+        .select("id,user_id,name,department,description,start_date,end_date,status,total_amount,created_at,updated_at")
         .eq("user_id", authUser.id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(200);
 
-      if (vouchersError) {
-        console.error("/api/vouchers query error", vouchersError);
-        console.error("Error details:", {
-          message: vouchersError.message,
-          details: vouchersError.details,
-          hint: vouchersError.hint,
-          code: vouchersError.code,
-        });
-        return res.status(500).json({
-          error: "Vouchers query failed",
-          details: vouchersError.message,
-          code: vouchersError.code,
-        });
+      if (error) {
+        console.error("/api/vouchers query error", error);
+        console.error("Error details:", JSON.stringify(error, null, 2));
+        return res
+          .status(error.code === "42501" ? 403 : 500)
+          .json({ error: "Vouchers query failed", details: error.message, code: error.code });
       }
 
-      console.log(
-        "Vouchers fetched successfully:",
-        vouchers?.length || 0,
-        "vouchers"
-      );
+      // Get expenses for all vouchers
+      let expensesData = [];
+      if (data && data.length > 0) {
+        const voucherIds = data.map(v => v.id);
+        const { data: expenses, error: expensesError } = await admin
+          .from("expenses")
+          .select("id,voucher_id,description,transport_type,amount,distance,datetime,notes,created_at")
+          .in("voucher_id", voucherIds)
+          .order("datetime", { ascending: false });
 
-      // Transform the data to match the expected format
-      const transformedVouchers =
-        vouchers?.map((voucher) => ({
-          ...voucher,
-          userId: voucher.user_id,
-          startDate: voucher.start_date,
-          endDate: voucher.end_date,
-          totalAmount: voucher.total_amount,
-          createdAt: voucher.created_at,
-          updatedAt: voucher.updated_at,
-          expenses: voucher.expenses || [],
-          expenseCount: voucher.expenses?.length || 0,
+        if (expensesError) {
+          console.error("Error fetching expenses:", expensesError);
+          // Continue without expenses rather than failing completely
+          expensesData = [];
+        } else {
+          expensesData = expenses || [];
+        }
+      }
+
+      // Group expenses by voucher_id
+      const expensesByVoucher = expensesData.reduce((acc, expense) => {
+        if (!acc[expense.voucher_id]) {
+          acc[expense.voucher_id] = [];
+        }
+        acc[expense.voucher_id].push(expense);
+        return acc;
+      }, {});
+
+      // Transform data to include proper expenses and expense count
+      const transformed =
+        (data ?? []).map((v) => ({
+          ...v,
+          userId: v.user_id,
+          startDate: v.start_date,
+          endDate: v.end_date,
+          totalAmount: v.total_amount,
+          createdAt: v.created_at,
+          updatedAt: v.updated_at,
+          expenses: expensesByVoucher[v.id] || [],
+          expenseCount: expensesByVoucher[v.id] ? expensesByVoucher[v.id].length : 0,
         })) || [];
 
-      console.log("Transformed vouchers being returned:", transformedVouchers);
-      return res.json(transformedVouchers);
+      return res
+        .status(200)
+        .set("Cache-Control", "no-store")
+        .json({ data: transformed });
     } catch (e) {
       console.error("/api/vouchers handler error", e);
-      console.error(
-        "Error stack:",
-        e instanceof Error ? e.stack : "No stack trace"
-      );
-      res.status(500).json({
+      return res.status(500).json({
         error: "Vouchers handler error",
         message: e instanceof Error ? e.message : "Unknown error",
-        stack:
-          process.env.NODE_ENV === "development"
-            ? e instanceof Error
-              ? e.stack
-              : undefined
-            : undefined,
       });
     }
   });
+// ...existing code...
 
   app.post("/api/vouchers", verifySupabaseToken, async (req, res) => {
     try {
@@ -486,6 +466,50 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
+  // Update voucher endpoint (for status changes, etc.)
+  app.patch("/api/vouchers/:id", verifySupabaseToken, async (req, res) => {
+    try {
+      const authUser = req.user!; // set by middleware
+      const { id } = req.params;
+      const updateData = req.body;
+
+      if (!SUPABASE_URL || !SERVICE_ROLE) {
+        return res.status(503).json({
+          error: "Service temporarily unavailable",
+          message: "Database configuration missing",
+          details: "Please check environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+        });
+      }
+
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+        auth: { persistSession: false },
+      });
+
+      // Update the voucher (with user ownership check)
+      const { data, error } = await admin
+        .from("vouchers")
+        .update(updateData)
+        .eq("id", id)
+        .eq("user_id", authUser.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("/api/vouchers PATCH error", error);
+        return res.status(500).json({ error: "Failed to update voucher" });
+      }
+
+      if (!data) {
+        return res.status(404).json({ error: "Voucher not found or not authorized" });
+      }
+
+      return res.json(data);
+    } catch (e) {
+      console.error("/api/vouchers PATCH handler error", e);
+      res.status(500).json({ error: "Voucher update error" });
+    }
+  });
+
   app.delete("/api/vouchers/:id", verifySupabaseToken, async (req, res) => {
     try {
       const authUser = req.user!; // set by middleware
@@ -641,4 +665,81 @@ export function registerRoutes(app: express.Express) {
       }
     }
   );
+
+  // Delete expense endpoint
+  app.delete("/api/expenses/:id", verifySupabaseToken, async (req, res) => {
+    try {
+      const authUser = req.user!; // set by middleware
+      const { id: expenseId } = req.params;
+
+      if (!SUPABASE_URL || !SERVICE_ROLE) {
+        return res.status(503).json({
+          error: "Service temporarily unavailable",
+          message: "Database configuration missing",
+          details: "Please check environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+        });
+      }
+
+      const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+        auth: { persistSession: false },
+      });
+
+      // First, get the expense to verify ownership and get voucher_id
+      const { data: expense, error: fetchError } = await admin
+        .from("expenses")
+        .select("voucher_id, vouchers!inner(user_id)")
+        .eq("id", expenseId)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching expense:", fetchError);
+        return res.status(500).json({
+          error: "Failed to fetch expense",
+          details: fetchError.message,
+        });
+      }
+
+      if (!expense) {
+        return res.status(404).json({ error: "Expense not found" });
+      }
+
+      // Verify the expense belongs to a voucher owned by the authenticated user
+      if (expense.vouchers.user_id !== authUser.id) {
+        return res.status(403).json({ error: "Not authorized to delete this expense" });
+      }
+
+      // Delete the expense
+      const { error: deleteError } = await admin
+        .from("expenses")
+        .delete()
+        .eq("id", expenseId);
+
+      if (deleteError) {
+        console.error("/api/expenses DELETE error", deleteError);
+        return res.status(500).json({ error: "Failed to delete expense" });
+      }
+
+      // Update voucher total amount
+      const { data: remainingExpenses, error: expensesError } = await admin
+        .from("expenses")
+        .select("amount")
+        .eq("voucher_id", expense.voucher_id);
+
+      if (!expensesError && remainingExpenses) {
+        const totalAmount = remainingExpenses.reduce(
+          (sum, exp) => sum + parseFloat(exp.amount || "0"),
+          0
+        );
+        await admin
+          .from("vouchers")
+          .update({ total_amount: totalAmount.toString() })
+          .eq("id", expense.voucher_id);
+      }
+
+      return res.json({ success: true });
+    } catch (e) {
+      console.error("/api/expenses DELETE handler error", e);
+      res.status(500).json({ error: "Expense deletion error" });
+    }
+  });
 }

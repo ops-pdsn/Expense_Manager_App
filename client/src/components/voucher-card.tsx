@@ -74,14 +74,13 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
     ? differenceInDays(new Date(voucher.end_date), new Date(voucher.start_date)) + 1
     : 0;
 
-  // Submit voucher mutation (Supabase)
+  // Submit voucher mutation (Backend API)
   const submitVoucherMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("vouchers")
-        .update({ status: "submitted" })
-        .eq("id", voucher.id);
-      if (error) throw new Error(error.message);
+      const response = await apiRequest("PATCH", `/api/vouchers/${voucher.id}`, {
+        status: "submitted"
+      });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["vouchers"] });
@@ -536,6 +535,7 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
         </div>
 
         {/* Summary */}
+    
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
             <span className="flex items-center">
@@ -544,8 +544,8 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
             </span>
             <span className="flex items-center">
               <ReceiptIndianRupee className="mr-1" size={14} />
-              {voucher.expenseCount} expense
-              {voucher.expenseCount !== 1 ? "s" : ""}
+              {voucher.expenses?.length || 0} expense
+              {(voucher.expenses?.length || 0) !== 1 ? "s" : ""}
             </span>
           </div>
           <div className="text-right">
@@ -554,6 +554,7 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
             </p>
           </div>
         </div>
+
 
         {/* Expanded Details */}
         {isExpanded && (

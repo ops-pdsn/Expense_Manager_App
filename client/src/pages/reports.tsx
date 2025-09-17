@@ -88,8 +88,8 @@ export default function Reports() {
         throw new Error(`Failed to fetch vouchers: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return data;
+      const result = await response.json();
+      return result.data || result; // Handle both {data: [...]} and [...] formats
     },
   });
 
