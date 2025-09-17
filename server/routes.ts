@@ -698,10 +698,10 @@ export function registerRoutes(app: express.Express) {
         auth: { persistSession: false },
       });
 
-      // First, get the expense to verify ownership and get voucher_id
+      // First, get the expense to get voucher_id
       const { data: expense, error: fetchError } = await admin
         .from("expenses")
-        .select("voucher_id, vouchers!inner(user_id)")
+        .select("voucher_id")
         .eq("id", expenseId)
         .single();
 
@@ -717,8 +717,19 @@ export function registerRoutes(app: express.Express) {
         return res.status(404).json({ error: "Expense not found" });
       }
 
-      // Verify the expense belongs to a voucher owned by the authenticated user
-      if (expense.vouchers.user_id !== authUser.id) {
+      // Then verify the voucher belongs to the authenticated user
+      const { data: voucher, error: voucherError } = await admin
+        .from("vouchers")
+        .select("user_id")
+        .eq("id", expense.voucher_id)
+        .single();
+
+      if (voucherError || !voucher) {
+        return res.status(404).json({ error: "Voucher not found" });
+      }
+
+      // Verify ownership
+      if (voucher.user_id !== authUser.id) {
         return res.status(403).json({ error: "Not authorized to delete this expense" });
       }
 

@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -218,6 +219,9 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
       <DialogContent className="w-[95vw] max-w-md sm:max-w-md bg-white dark:bg-gray-800 max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-lg sm:text-xl">Add Expense</DialogTitle>
+          <DialogDescription>
+            Add a new expense to this voucher. Fill in the details below.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

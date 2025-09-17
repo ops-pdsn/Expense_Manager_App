@@ -12,6 +12,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -199,6 +200,9 @@ export function CreateVoucherModal({
           <DialogTitle className="text-lg sm:text-xl">
             Create New Voucher
           </DialogTitle>
+          <DialogDescription>
+            Create a new expense voucher for your travel or business expenses.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
