@@ -68,7 +68,7 @@ export default function Dashboard() {
     isLoading: vouchersLoading,
     error: vouchersError,
     refetch: refetchVouchers,
-  } = useQuery<VoucherWithExpenses[]>({
+  } = useQuery<VoucherWithExpenses[]>( {
     queryKey: ["vouchers"],
     enabled: !!user,
     retry: false,

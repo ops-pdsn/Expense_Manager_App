@@ -69,11 +69,27 @@ export default function Reports() {
   const { data: vouchers = [], isLoading } = useQuery<VoucherWithExpenses[]>({
     queryKey: ["vouchers"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vouchers")
-        .select("*, expenses(*)");
-      if (error) throw new Error(error.message);
-      return data || [];
+      // Get the current session token
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch("/api/vouchers", {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch vouchers: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
     },
   });
 
