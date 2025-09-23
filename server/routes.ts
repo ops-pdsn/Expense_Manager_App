@@ -176,16 +176,19 @@ export function registerRoutes(app: express.Express) {
         auth: { persistSession: false },
       });
 
-      // Upsert user profile
+      // Upsert user profile WITHOUT clearing unspecified fields
+      // Build payload only with provided fields to avoid overwriting with null
+      const payload: Record<string, any> = {
+        id: authUser.id,
+        email: authUser.email,
+      };
+      if (firstName !== undefined) payload.first_name = firstName;
+      if (lastName !== undefined) payload.last_name = lastName;
+      if (department !== undefined) payload.department = department;
+
       const { data, error } = await admin
         .from("users")
-        .upsert({
-          id: authUser.id,
-          email: authUser.email,
-          first_name: firstName || null,
-          last_name: lastName || null,
-          department: department || "Operations",
-        })
+        .upsert(payload)
         .select()
         .single();
 

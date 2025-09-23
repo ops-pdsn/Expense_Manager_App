@@ -37,6 +37,7 @@ import AutoRickshaw from "@/components/icons/auto-rickshaw";
 import { supabase } from "@/lib/supabaseClient";
 import type { VoucherWithExpenses, Expense } from "@shared/schema";
 import { format, differenceInDays } from "date-fns";
+import { useAuth } from "@/hooks/useSupabaseAuth";
 
 interface VoucherCardProps {
   voucher: VoucherWithExpenses;
@@ -69,6 +70,7 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const dayCount = voucher.start_date && voucher.end_date 
     ? differenceInDays(new Date(voucher.end_date), new Date(voucher.start_date)) + 1
@@ -204,6 +206,12 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
           }${watermarkLogoEnv}`
       : "";
 
+    const employeeName = [user?.firstName, user?.lastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    const employeeDisplay = employeeName || (user?.email ?? "");
+
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -267,17 +275,26 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
           .info-section p { 
             margin: 5px 0; 
             font-size: 13px;
+            display: flex;
+            align-items: center;
+          }
+          .info-section p strong {
+            display: inline-block;
+            min-width: 100px; /* ensures values start at same x-position */
+            flex-shrink: 0;
           }
           .expenses-table { 
             width: 100%; 
             border-collapse: collapse; 
             margin: 20px 0; 
+            table-layout: fixed; 
           }
           .expenses-table th, 
           .expenses-table td { 
             border: 1px solid #ddd; 
             padding: 12px; 
-            text-align: left; 
+            text-align: center; 
+            vertical-align: top; 
           }
           .expenses-table th { 
             background: #f1f1f1; 
@@ -286,6 +303,15 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
           }
           .expenses-table td { 
             font-size: 11px;
+          }
+          /* Notes column left-aligned with wrapping */
+          .expenses-table th:nth-child(6), .expenses-table td:nth-child(6) {
+            text-align: left;
+          }
+          .notes-cell { 
+            white-space: pre-wrap; 
+            word-break: break-word; 
+            overflow-wrap: anywhere; 
           }
           .total-section { 
             margin-top: 30px; 
@@ -358,6 +384,7 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
           <div class="info-section">
             <h3>Voucher Details</h3>
             <p><strong>Voucher Name:</strong> ${voucher.name}</p>
+            <p><strong>Employee:</strong> ${employeeDisplay}</p>
             <p><strong>Status:</strong> <span class="status-badge">${voucher.status.toUpperCase()}</span></p>
             <p><strong>Total Amount:</strong> ₹${parseFloat(
               voucher.totalAmount
@@ -404,6 +431,14 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
           voucher.expenses.length > 0
             ? `
         <table class="expenses-table">
+          <colgroup>
+            <col style="width: 15%" />
+            <col style="width: 20%" />
+            <col style="width: 15%" />
+            <col style="width: 12%" />
+            <col style="width: 12%" />
+            <col style="width: 26%" />
+          </colgroup>
           <thead>
             <tr>
               <th>Date & Time</th>
@@ -436,7 +471,7 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
                 <td style="text-align: right;">₹${parseFloat(
                   expense.amount
                 ).toLocaleString()}</td>
-                <td>${expense.notes || "-"}</td>
+                <td class="notes-cell">${expense.notes || "-"}</td>
               </tr>
             `
               )
