@@ -5,8 +5,8 @@ import type {
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 3000 // 3 seconds for auto-dismiss
+const TOAST_LIMIT = 2
+const TOAST_REMOVE_DELAY = 2500 // auto-dismiss sooner
 
 type ToasterToast = ToastProps & {
   id: string

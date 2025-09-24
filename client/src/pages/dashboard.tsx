@@ -27,6 +27,7 @@ import {
 import { VoucherCard } from "@/components/voucher-card";
 import { CreateVoucherModal } from "@/components/create-voucher-modal";
 import { AddExpenseModal } from "@/components/add-expense-modal";
+import { AddMultiExpenseModal } from "@/components/add-multi-expense-modal";
 import { UserAvatar } from "@/components/UserAvatar";
 import { supabase } from "@/lib/supabaseClient";
 import type { VoucherWithExpenses, User as UserType } from "@shared/schema";
@@ -43,6 +44,7 @@ export default function Dashboard() {
   const [filter, setFilter] = useState<FilterType>("all");
   const [showCreateVoucher, setShowCreateVoucher] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
+  const [showAddMultiExpense, setShowAddMultiExpense] = useState(false);
   const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(
     null
   );
@@ -180,6 +182,11 @@ export default function Dashboard() {
   const handleAddExpense = (voucherId: string) => {
     setSelectedVoucherId(voucherId);
     setShowAddExpense(true);
+  };
+
+  const handleAddMultipleExpense = (voucherId: string) => {
+    setSelectedVoucherId(voucherId);
+    setShowAddMultiExpense(true);
   };
 
   // TEMPORARY FIX: Skip department selection entirely
@@ -404,6 +411,7 @@ export default function Dashboard() {
                 key={voucher.id}
                 voucher={voucher}
                 onAddExpense={handleAddExpense}
+                onAddMultipleExpense={handleAddMultipleExpense}
               />
             ))
           )}
@@ -450,6 +458,14 @@ export default function Dashboard() {
         <AddExpenseModal
           open={showAddExpense}
           onOpenChange={setShowAddExpense}
+          voucherId={selectedVoucherId}
+        />
+      )}
+
+      {selectedVoucherId && (
+        <AddMultiExpenseModal
+          open={showAddMultiExpense}
+          onOpenChange={setShowAddMultiExpense}
           voucherId={selectedVoucherId}
         />
       )}

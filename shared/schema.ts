@@ -55,9 +55,10 @@ export const vouchers = pgTable("vouchers", {
 export const expenses = pgTable("expenses", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   voucher_id: varchar("voucher_id").notNull().references(() => vouchers.id, { onDelete: "cascade" }),
+  batch_id: varchar("batch_id"),
   description: varchar("description").notNull(),
   transport_type: varchar("transport_type", { 
-    enum: ["bus", "train", "cab", "auto", "fuel", "flight", "parking", "other"] 
+    enum: ["bus", "train", "cab", "auto", "fuel", "flight", "parking", "food", "other"] 
   }).notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   distance: integer("distance"), // for fuel calculations

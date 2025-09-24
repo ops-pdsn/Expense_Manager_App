@@ -244,13 +244,13 @@ export function registerRoutes(app: express.Express) {
           .json({ error: "Vouchers query failed", details: error.message, code: error.code });
       }
 
-      // Get expenses for all vouchers
+      // Get expenses for all vouchers (include batch_id)
       let expensesData = [];
       if (data && data.length > 0) {
         const voucherIds = data.map(v => v.id);
         const { data: expenses, error: expensesError } = await admin
           .from("expenses")
-          .select("id,voucher_id,description,transport_type,amount,distance,datetime,notes,created_at")
+          .select("id,voucher_id,batch_id,description,transport_type,amount,distance,datetime,notes,created_at")
           .in("voucher_id", voucherIds)
           .order("datetime", { ascending: false });
 
@@ -681,6 +681,112 @@ export function registerRoutes(app: express.Express) {
         res.status(500).json({ error: "Expense creation error" });
       }
     }
+  );
+
+  // Bulk insert expenses endpoint
+  app.post(
+    "/api/vouchers/:id/expenses/bulk",
+    verifySupabaseToken,
+    async (req, res) => {
+      try {
+        const authUser = req.user!;
+        const { id: voucherId } = req.params;
+        const { items } = req.body || {};
+
+        if (!Array.isArray(items) || items.length === 0) {
+          return res.status(400).json({ error: "No expense items provided" });
+        }
+
+        if (!SUPABASE_URL || !SERVICE_ROLE) {
+          return res.status(503).json({
+            error: "Service temporarily unavailable",
+            message: "Database configuration missing",
+            details:
+              "Please check environment variables: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY",
+          });
+        }
+
+        const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
+          auth: { persistSession: false },
+        });
+
+        // Verify voucher ownership
+        const { data: voucher, error: fetchError } = await admin
+          .from("vouchers")
+          .select("id,user_id")
+          .eq("id", voucherId)
+          .single();
+
+        if (fetchError) {
+          return res.status(500).json({
+            error: "Failed to fetch voucher",
+            details: fetchError.message,
+            code: fetchError.code,
+          });
+        }
+
+        if (!voucher || voucher.user_id !== authUser.id) {
+          return res.status(404).json({ error: "Voucher not found" });
+        }
+
+        // Basic validation and coercion
+        const batchId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+        const sanitizedItems = items
+          .map((item: any) => ({
+            voucher_id: voucherId,
+            batch_id: batchId,
+            description: item?.description,
+            transport_type: item?.transport_type,
+            amount: typeof item?.amount === "number" ? item.amount.toFixed(2) : String(item?.amount ?? ""),
+            distance: item?.distance ?? null,
+            datetime: item?.datetime,
+            notes: item?.notes ?? null,
+          }))
+          .filter((i: any) =>
+            i.description &&
+            i.transport_type &&
+            i.amount &&
+            i.datetime
+          );
+
+        if (sanitizedItems.length === 0) {
+          return res.status(400).json({ error: "No valid expense items provided" });
+        }
+
+        const { data: inserted, error } = await admin
+          .from("expenses")
+          .insert(sanitizedItems)
+          .select();
+
+        if (error) {
+          console.error("/api/vouchers/:id/expenses/bulk POST error", error);
+          return res.status(500).json({ error: "Failed to create expenses" });
+        }
+
+        // Update voucher total amount
+        const { data: expenses, error: expensesError } = await admin
+          .from("expenses")
+          .select("amount")
+          .eq("voucher_id", voucherId);
+
+        if (!expensesError && expenses) {
+          const totalAmount = expenses.reduce(
+            (sum, exp) => sum + parseFloat(exp.amount || "0"),
+            0,
+          );
+          await admin
+            .from("vouchers")
+            .update({ total_amount: totalAmount.toString() })
+            .eq("id", voucherId);
+        }
+
+        return res.json({ data: inserted, batch_id: batchId });
+      } catch (e) {
+        console.error("/api/vouchers/:id/expenses/bulk POST handler error", e);
+        res.status(500).json({ error: "Bulk expense creation error" });
+      }
+    },
   );
 
   // Delete expense endpoint

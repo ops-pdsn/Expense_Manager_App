@@ -43,7 +43,7 @@ interface AddExpenseModalProps {
 
 const formSchema = insertExpenseSchema.omit({ voucher_id: true }).extend({
   datetime: z.string().min(1, "Date and time is required"),
-  transport_type: z.enum(["bus", "train", "cab", "auto", "fuel", "flight", "parking", "other"]),
+  transport_type: z.enum(["bus", "train", "cab", "auto", "fuel", "flight", "parking", "food", "other"]),
   description: z.string().min(1, "Description is required"),
   amount: z.string().min(1, "Amount is required"),
   distance: z.number().optional(),
@@ -60,6 +60,7 @@ const transportOptions = [
   { value: "fuel", label: "Fuel (Personal Vehicle)" },
   { value: "flight", label: "Flight" },
   { value: "parking", label: "Parking" },
+  { value: "food", label: "Food" },
   { value: "other", label: "Other" },
 ];
 
@@ -166,6 +167,7 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
         title: "Success",
         description: "Expense added successfully",
         variant: "success",
+        // auto-dismiss handled globally; keep to short
       });
       
       form.reset();
@@ -194,6 +196,7 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
         title: "Error",
         description: "Failed to add expense",
         variant: "destructive",
+        // short auto-dismiss
       });
     },
     // Always refetch after error or success to ensure consistency
@@ -242,11 +245,11 @@ export function AddExpenseModal({ open, onOpenChange, voucherId }: AddExpenseMod
               name="transport_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm font-medium">Transport Type</FormLabel>
+                  <FormLabel className="text-sm font-medium">Expense Type</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="bg-white dark:bg-gray-700 h-10">
-                        <SelectValue placeholder="Select Transport Type" />
+                        <SelectValue placeholder="Select Expense Type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>

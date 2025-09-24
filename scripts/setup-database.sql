@@ -34,8 +34,9 @@ CREATE TABLE IF NOT EXISTS vouchers (
 CREATE TABLE IF NOT EXISTS expenses (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   voucher_id UUID NOT NULL REFERENCES vouchers(id) ON DELETE CASCADE,
+  batch_id UUID,
   description VARCHAR NOT NULL,
-  transport_type VARCHAR NOT NULL CHECK (transport_type IN ('bus', 'train', 'cab', 'auto', 'fuel', 'flight', 'parking', 'other')),
+  transport_type VARCHAR NOT NULL CHECK (transport_type IN ('bus', 'train', 'cab', 'auto', 'fuel', 'flight', 'parking', 'food', 'other')),
   amount DECIMAL(10,2) NOT NULL,
   distance INTEGER, -- for fuel calculations
   datetime TIMESTAMP WITH TIME ZONE NOT NULL,
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 CREATE INDEX IF NOT EXISTS idx_vouchers_user_id ON vouchers(user_id);
 CREATE INDEX IF NOT EXISTS idx_vouchers_created_at ON vouchers(created_at);
 CREATE INDEX IF NOT EXISTS idx_expenses_voucher_id ON expenses(voucher_id);
+CREATE INDEX IF NOT EXISTS idx_expenses_batch_id ON expenses(batch_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_datetime ON expenses(datetime);
 
 -- Create updated_at trigger function

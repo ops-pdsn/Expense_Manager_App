@@ -153,6 +153,7 @@ export function CreateVoucherModal({
         title: "Success",
         description: "Voucher created successfully. You can now add expenses.",
         variant: "success",
+        // auto-dismiss handled globally
       });
 
       // Reset and close
@@ -165,6 +166,7 @@ export function CreateVoucherModal({
         title: "Error",
         description: error.message || "Failed to create voucher",
         variant: "destructive",
+        // auto-dismiss
       });
     },
   });

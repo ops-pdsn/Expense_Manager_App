@@ -29,6 +29,7 @@ import {
   Plane,
   ParkingSquare,
   Train,
+  UtensilsCrossed,
   MoreHorizontal,
   Trash2,
   Printer,
@@ -42,6 +43,7 @@ import { useAuth } from "@/hooks/useSupabaseAuth";
 interface VoucherCardProps {
   voucher: VoucherWithExpenses;
   onAddExpense: (voucherId: string) => void;
+  onAddMultipleExpense?: (voucherId: string) => void;
 }
 
 const transportIcons = {
@@ -52,6 +54,7 @@ const transportIcons = {
   fuel: Fuel,
   flight: Plane,
   parking: ParkingSquare,
+  food: UtensilsCrossed,
   other: MoreHorizontal,
 };
 
@@ -63,10 +66,11 @@ const transportColors = {
   fuel: "text-orange-600",
   flight: "text-blue-600",
   parking: "text-purple-600",
+  food: "text-pink-600",
   other: "text-gray-600",
 };
 
-export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
+export function VoucherCard({ voucher, onAddExpense, onAddMultipleExpense }: VoucherCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -443,7 +447,7 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
             <tr>
               <th>Date & Time</th>
               <th>Description</th>
-              <th>Transport Type</th>
+              <th>Expense Type</th>
               <th>Distance (KM)</th>
               <th>Amount (₹)</th>
               <th>Notes</th>
@@ -595,7 +599,7 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
               </div>
             )}
 
-            {/* Expenses List */}
+            {/* Expenses List (restored original per-item view) */}
             {voucher.expenses.length > 0 ? (
               <div className="space-y-2 sm:space-y-3 mb-4">
                 {voucher.expenses.map((expense: Expense) => (
@@ -674,6 +678,15 @@ export function VoucherCard({ voucher, onAddExpense }: VoucherCardProps) {
                     <Plus className="mr-1 xs:mr-2" size={14} />
                     <span className="hidden xs:inline">Add </span>Expense
                   </Button>
+                  {onAddMultipleExpense && (
+                    <Button
+                      className="flex-[2] xs:flex-[2] bg-amber-500 hover:bg-amber-600 text-white h-10 text-xs xs:text-sm px-2 xs:px-3"
+                      onClick={() => onAddMultipleExpense(voucher.id)}
+                    >
+                      <Plus className="mr-1 xs:mr-2" size={14} />
+                      <span className="hidden xs:inline">Add </span>Multiple
+                    </Button>
+                  )}
                   {voucher.expenses.length > 0 && (
                     <Button
                       className="flex-[2] xs:flex-[2] bg-secondary hover:bg-green-700 text-white h-10 text-xs xs:text-sm px-2 xs:px-3"
